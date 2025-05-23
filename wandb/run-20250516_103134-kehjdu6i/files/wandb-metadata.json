@@ -1,0 +1,44 @@
+{
+  "os": "macOS-14.1-arm64-arm-64bit",
+  "python": "CPython 3.12.10",
+  "startedAt": "2025-05-16T09:31:34.505370Z",
+  "program": "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/demo/schnakenberg_train_nca_to_pde_demo.py",
+  "codePath": "demo/schnakenberg_train_nca_to_pde_demo.py",
+  "git": {
+    "remote": "https://github.com/AlexDR1998/Differentiable-Patterning.git",
+    "commit": "cdb3ff1ba6e24d0ae268b5cdc3621a171739b11a"
+  },
+  "email": "s2629686@ed.ac.uk",
+  "root": "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning",
+  "host": "Rutwiks-MacBook-Air.local",
+  "executable": "/opt/anaconda3/envs/jax_cpu/bin/python",
+  "codePathLocal": "demo/schnakenberg_train_nca_to_pde_demo.py",
+  "cpu_count": 8,
+  "cpu_count_logical": 8,
+  "disk": {
+    "/": {
+      "total": "494384795648",
+      "used": "211052736512"
+    },
+    "/System/Volumes/Data": {
+      "total": "494384795648",
+      "used": "211052736512"
+    }
+  },
+  "memory": {
+    "total": "17179869184"
+  },
+  "cpu": {
+    "count": 8,
+    "countLogical": 8
+  },
+  "apple": {
+    "name": "Apple M2",
+    "ecpuCores": 4,
+    "pcpuCores": 4,
+    "gpuCores": 8,
+    "memoryGb": 16,
+    "swapTotalBytes": "3221225472",
+    "ramTotalBytes": "17179869184"
+  }
+}

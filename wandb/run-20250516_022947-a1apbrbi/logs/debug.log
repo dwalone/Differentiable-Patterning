@@ -1,0 +1,41 @@
+2025-05-16 02:29:47,174 INFO    MainThread:47885 [wandb_setup.py:_flush():70] Current SDK version is 0.19.11
+2025-05-16 02:29:47,174 INFO    MainThread:47885 [wandb_setup.py:_flush():70] Configure stats pid to 47885
+2025-05-16 02:29:47,174 INFO    MainThread:47885 [wandb_setup.py:_flush():70] Loading settings from /Users/rutwik/.config/wandb/settings
+2025-05-16 02:29:47,174 INFO    MainThread:47885 [wandb_setup.py:_flush():70] Loading settings from /Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/wandb/settings
+2025-05-16 02:29:47,174 INFO    MainThread:47885 [wandb_setup.py:_flush():70] Loading settings from environment variables
+2025-05-16 02:29:47,174 INFO    MainThread:47885 [wandb_init.py:setup_run_log_directory():724] Logging user logs to /Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/wandb/run-20250516_022947-a1apbrbi/logs/debug.log
+2025-05-16 02:29:47,174 INFO    MainThread:47885 [wandb_init.py:setup_run_log_directory():725] Logging internal logs to /Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/wandb/run-20250516_022947-a1apbrbi/logs/debug-internal.log
+2025-05-16 02:29:47,174 INFO    MainThread:47885 [wandb_init.py:init():852] calling init triggers
+2025-05-16 02:29:47,174 INFO    MainThread:47885 [wandb_init.py:init():857] wandb.init called with sweep_config: {}
+config: {'MODEL': {'MODEL': 'NCA', 'N_CHANNELS': 8, 'KERNEL_STR': ['ID', 'LAP'], 'ACTIVATION': 'relu', 'PADDING': 'CIRCULAR', 'FIRE_RATE': 1.0}, 'TRAINING': {'t': 32, 'iters': 8000, 'optimiser': GradientTransformationExtraArgs(init=<function chain.<locals>.init_fn at 0x127133740>, update=<function chain.<locals>.update_fn at 0x1271b0040>), 'STATE_REGULARISER': 1.0, 'BOUNDARY_REGULARISER': 1.0, 'WARMUP': 50, 'LOSS_SAMPLING': 64, 'LOG_EVERY': 50, 'CLEAR_CACHE_EVERY': 100, 'WRITE_IMAGES': True, 'LOSS_FUNC_STR': 'euclidean', 'LOOP_AUTODIFF': 'lax', 'SPARSE_PRUNING': False, 'TARGET_SPARSITY': 0.5}, '_wandb': {}}
+2025-05-16 02:29:47,174 INFO    MainThread:47885 [wandb_init.py:init():893] starting backend
+2025-05-16 02:29:47,174 INFO    MainThread:47885 [wandb_init.py:init():897] sending inform_init request
+2025-05-16 02:29:47,199 INFO    MainThread:47885 [backend.py:_multiprocessing_setup():101] multiprocessing start_methods=spawn,fork,forkserver, using: spawn
+2025-05-16 02:29:47,199 INFO    MainThread:47885 [wandb_init.py:init():907] backend started and connected
+2025-05-16 02:29:47,202 INFO    MainThread:47885 [wandb_init.py:init():1005] updated telemetry
+2025-05-16 02:29:47,233 INFO    MainThread:47885 [wandb_init.py:init():1029] communicating run to backend with 90.0 second timeout
+2025-05-16 02:29:47,897 INFO    MainThread:47885 [wandb_init.py:init():1104] starting run threads in backend
+2025-05-16 02:29:48,028 INFO    MainThread:47885 [wandb_run.py:_console_start():2573] atexit reg
+2025-05-16 02:29:48,028 INFO    MainThread:47885 [wandb_run.py:_redirect():2421] redirect: wrap_raw
+2025-05-16 02:29:48,028 INFO    MainThread:47885 [wandb_run.py:_redirect():2490] Wrapping output streams.
+2025-05-16 02:29:48,029 INFO    MainThread:47885 [wandb_run.py:_redirect():2513] Redirects installed.
+2025-05-16 02:29:48,031 INFO    MainThread:47885 [wandb_init.py:init():1150] run started, returning control to user process
+2025-05-16 03:18:04,812 ERROR   asyncio_0 :47885 [util.py:get_module():261] [no run ID] Error importing optional module moviepy.video.io.ImageSequenceClip
+Traceback (most recent call last):
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/wandb/util.py", line 227, in import_module_lazy
+    return sys.modules[name]
+           ~~~~~~~~~~~^^^^^^
+KeyError: 'moviepy.video.io.ImageSequenceClip'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/wandb/util.py", line 256, in get_module
+    return import_module_lazy(name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/wandb/util.py", line 229, in import_module_lazy
+    spec = importlib.util.find_spec(name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib.util>", line 91, in find_spec
+ModuleNotFoundError: No module named 'moviepy'
+2025-05-16 03:18:05,211 INFO    MsgRouterThr:47885 [mailbox.py:close():129] [no run ID] Closing mailbox, abandoning 1 handles.

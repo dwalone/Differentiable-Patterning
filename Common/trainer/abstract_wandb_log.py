@@ -2,7 +2,7 @@ import wandb
 import numpy as np
 from jaxtyping import Float, Array
 from einops import rearrange
-wandb.login(key="c969e9166d4abf8c10db353deaa242e386db8b99")
+wandb.login(key="e5b76dd08e1a70d547f6c8fc6b4d2621d87cd3b1")
 class Train_log(object):
     def __init__(
         self,

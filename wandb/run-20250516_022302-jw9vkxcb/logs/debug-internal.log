@@ -1,0 +1,25 @@
+{"time":"2025-05-16T02:23:02.62527+01:00","level":"INFO","msg":"stream: starting","core version":"0.19.11","symlink path":"/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/wandb/run-20250516_022302-jw9vkxcb/logs/debug-core.log"}
+{"time":"2025-05-16T02:23:02.946709+01:00","level":"INFO","msg":"created new stream","id":"jw9vkxcb"}
+{"time":"2025-05-16T02:23:02.946934+01:00","level":"INFO","msg":"stream: started","id":"jw9vkxcb"}
+{"time":"2025-05-16T02:23:02.947117+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"jw9vkxcb"}
+{"time":"2025-05-16T02:23:02.947307+01:00","level":"INFO","msg":"handler: started","stream_id":"jw9vkxcb"}
+{"time":"2025-05-16T02:23:02.947465+01:00","level":"INFO","msg":"sender: started","stream_id":"jw9vkxcb"}
+{"time":"2025-05-16T02:23:03.233086+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-05-16T02:23:07.843189+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-16T02:23:07.886643+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-16T02:23:08.019909+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-16T02:23:08.020066+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-16T02:23:08.020289+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-16T02:23:08.528219+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-16T02:23:08.700324+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-16T02:23:08.938742+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-16T02:23:08.948166+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-16T02:23:08.998023+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-16T02:23:45.399421+01:00","level":"INFO","msg":"stream: closing","id":"jw9vkxcb"}
+{"time":"2025-05-16T02:23:45.399943+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-05-16T02:23:45.40003+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-05-16T02:23:45.948747+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-05-16T02:23:46.213011+01:00","level":"INFO","msg":"sender: closed","stream_id":"jw9vkxcb"}
+{"time":"2025-05-16T02:23:46.213036+01:00","level":"INFO","msg":"handler: closed","stream_id":"jw9vkxcb"}
+{"time":"2025-05-16T02:23:46.213493+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"jw9vkxcb"}
+{"time":"2025-05-16T02:23:46.214028+01:00","level":"INFO","msg":"stream: closed","id":"jw9vkxcb"}
