@@ -1,0 +1,26 @@
+{"time":"2025-05-23T14:42:33.148725+01:00","level":"INFO","msg":"stream: starting","core version":"0.19.11","symlink path":"/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/wandb/run-20250523_144233-r64mphrr/logs/debug-core.log"}
+{"time":"2025-05-23T14:42:33.452961+01:00","level":"INFO","msg":"created new stream","id":"r64mphrr"}
+{"time":"2025-05-23T14:42:33.453028+01:00","level":"INFO","msg":"stream: started","id":"r64mphrr"}
+{"time":"2025-05-23T14:42:33.453039+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"r64mphrr"}
+{"time":"2025-05-23T14:42:33.453054+01:00","level":"INFO","msg":"handler: started","stream_id":"r64mphrr"}
+{"time":"2025-05-23T14:42:33.453158+01:00","level":"INFO","msg":"sender: started","stream_id":"r64mphrr"}
+{"time":"2025-05-23T14:42:33.744734+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-05-23T14:42:37.445751+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:42:37.471045+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:42:37.5679+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:42:37.568054+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:42:37.568264+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:42:38.130031+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:42:38.633686+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:42:38.888496+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:42:38.948375+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T16:08:19.537972+01:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/s2629686-the-university-of-edinburgh/NCA/r64mphrr/file_stream\": read tcp 10.162.71.238:63202->35.186.228.49:443: read: connection reset by peer"}
+{"time":"2025-05-23T16:26:30.904717+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-05-23T16:26:30.904765+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-05-23T16:26:31.629408+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-05-23T16:26:31.899287+01:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2025-05-23T16:26:31.90614+01:00","level":"INFO","msg":"stream: closing","id":"r64mphrr"}
+{"time":"2025-05-23T16:26:31.906198+01:00","level":"INFO","msg":"handler: closed","stream_id":"r64mphrr"}
+{"time":"2025-05-23T16:26:31.906237+01:00","level":"INFO","msg":"sender: closed","stream_id":"r64mphrr"}
+{"time":"2025-05-23T16:26:31.906223+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"r64mphrr"}
+{"time":"2025-05-23T16:26:31.90644+01:00","level":"INFO","msg":"stream: closed","id":"r64mphrr"}

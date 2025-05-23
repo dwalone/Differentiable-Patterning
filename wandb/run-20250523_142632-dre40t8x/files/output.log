@@ -1,0 +1,42 @@
+Logging training to: logs/demo/train_nca_to_pde_schnakenberg/train
+Saving model to: models/demo/train_nca_to_pde_schnakenberg
+  0%|                                                   | 0/100 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/demo/schnakenberg_train_nca_to_pde_demo.py", line 99, in <module>
+    trainer.train(
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer.py", line 434, in train
+    nca,x_new,y_new,t,opt_state,key,mean_loss,losses = make_step(nca, x, y, t, opt_state,key)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/equinox/_jit.py", line 209, in __call__
+    return _call(self, False, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/equinox/_jit.py", line 263, in _call
+    marker, _, _ = out = jit_wrapper._cached(
+                         ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer.py", line 389, in make_step
+    loss_x,grads = compute_loss(nca_diff,nca_static,x,y,t,key)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer.py", line 381, in compute_loss
+    (key,x,reg_log,boundary_reg_log),_ = eqx.internal.scan(nca_step,(key,x,reg_log,boundary_reg_log),xs=jnp.arange(t),kind=LOOP_AUTODIFF)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/equinox/internal/_loop/loop.py", line 181, in scan
+    return lax.scan(f, init, xs, length)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer.py", line 375, in nca_step
+    x = vv_nca(x,self.BOUNDARY_CALLBACK,key_array)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer.py", line 362, in <lambda>
+    vv_nca = lambda x,callback,key_array:jax.tree_util.tree_map(v_nca,x,callback,key_array)  # noqa: E731
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/model/NCA_model.py", line 154, in __call__
+    dx = layer(dx)
+         ^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/equinox/nn/_conv.py", line 238, in __call__
+    x = lax.conv_general_dilated(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: conv_general_dilated lhs feature dimension size divided by feature_group_count must equal the rhs input feature dimension size, but 16 // 1 != 32.
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.

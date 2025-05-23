@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/demo/schnakenberg_train_nca_to_pde_demo.py", line 99, in <module>
+    trainer.train(
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer.py", line 301, in train
+    self.setup_logging("wandb",wandb_args=wandb_args)
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer.py", line 155, in setup_logging
+    self.LOGGER = NCA_Train_log(data=self._data_raw,wandb_config=wandb_args)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/Common/trainer/abstract_wandb_log.py", line 15, in __init__
+    self.log_data_at_init(data)
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/Common/trainer/abstract_wandb_log.py", line 24, in log_data_at_init
+    self.log_image("True sequence U (gray)", gray, step=None)
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/Common/trainer/abstract_wandb_log.py", line 70, in log_image
+    raise ValueError("Image must be 3D or 4D (batch)")
+ValueError: Image must be 3D or 4D (batch)

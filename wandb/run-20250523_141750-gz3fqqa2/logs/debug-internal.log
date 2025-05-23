@@ -1,0 +1,21 @@
+{"time":"2025-05-23T14:17:50.172739+01:00","level":"INFO","msg":"stream: starting","core version":"0.19.11","symlink path":"/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/wandb/run-20250523_141750-gz3fqqa2/logs/debug-core.log"}
+{"time":"2025-05-23T14:17:50.46765+01:00","level":"INFO","msg":"created new stream","id":"gz3fqqa2"}
+{"time":"2025-05-23T14:17:50.467903+01:00","level":"INFO","msg":"stream: started","id":"gz3fqqa2"}
+{"time":"2025-05-23T14:17:50.46809+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"gz3fqqa2"}
+{"time":"2025-05-23T14:17:50.468355+01:00","level":"INFO","msg":"handler: started","stream_id":"gz3fqqa2"}
+{"time":"2025-05-23T14:17:50.468538+01:00","level":"INFO","msg":"sender: started","stream_id":"gz3fqqa2"}
+{"time":"2025-05-23T14:17:50.741748+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-05-23T14:17:55.108591+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:17:55.134099+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:17:55.229798+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:17:55.229965+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:17:55.230144+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:17:55.86053+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T14:17:56.156627+01:00","level":"INFO","msg":"stream: closing","id":"gz3fqqa2"}
+{"time":"2025-05-23T14:17:56.157395+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-05-23T14:17:56.157426+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-05-23T14:17:56.716995+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-05-23T14:17:56.96651+01:00","level":"INFO","msg":"sender: closed","stream_id":"gz3fqqa2"}
+{"time":"2025-05-23T14:17:56.966542+01:00","level":"INFO","msg":"handler: closed","stream_id":"gz3fqqa2"}
+{"time":"2025-05-23T14:17:56.966558+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"gz3fqqa2"}
+{"time":"2025-05-23T14:17:56.967093+01:00","level":"INFO","msg":"stream: closed","id":"gz3fqqa2"}

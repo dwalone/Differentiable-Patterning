@@ -18,7 +18,7 @@ from NCA.trainer.data_augmenter_nca_from_pde_2 import DataAugmenter
 from NCA.model.NCA_model import NCA
 
 # training hyperparameters
-ITERS         = 100        # total training iterations
+ITERS         = 8000        # total training iterations
 CHANNELS      = 8           # NCA channels
 SIZE          = 64          # spatial grid size
 BATCHES       = 1           # how many trajectories per batch
@@ -60,14 +60,21 @@ T, Y = solver(ts, x0)
 
 # reshape and keep only U-channel for NCA training
 Y = rearrange(Y, "T B C X Y -> B T C X Y")
-Y = Y[:, :, :1]                                 # drop V
-Y = (Y - Y.min()) / (Y.max() - Y.min())         # normalize [0,1]
+#Y = Y[:, :, :1]                                 # drop V
+
+#Y = (Y - Y.min()) / (Y.max() - Y.min())         # normalize [0,1]
+def normalize(batch):
+    mn, mx = batch.min(), batch.max()
+    return (batch - mn) / (mx - mn)
+Y = jax.vmap(normalize)(Y)
+
 Y = Y[:, ::TIME_SAMPLING]                       # downsample in time
 
 #--- build NCA and trainer
 nca = NCA(
     N_CHANNELS=CHANNELS,
-    KERNEL_STR=["ID", "LAP"],
+    #KERNEL_STR=["ID", "LAP"],
+    KERNEL_STR=["ID","LAP","GRAD"],
     ACTIVATION=jax.nn.relu,
     FIRE_RATE=1.0,
     key=key

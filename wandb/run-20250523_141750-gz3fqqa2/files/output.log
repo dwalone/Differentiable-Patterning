@@ -1,0 +1,50 @@
+Logging training to: logs/demo/train_nca_to_pde_schnakenberg/train
+Saving model to: models/demo/train_nca_to_pde_schnakenberg
+  0%| | 0/100 [00:02<?, ?it/s, loss=0.089891516, best loss=1e+8, loss diff=-1000
+Traceback (most recent call last):
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/PIL/ImageFile.py", line 547, in _save
+    fh = fp.fileno()
+         ^^^^^^^^^
+AttributeError: '_idat' object has no attribute 'fileno'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/demo/schnakenberg_train_nca_to_pde_demo.py", line 99, in <module>
+    trainer.train(
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer.py", line 454, in train
+    self.LOGGER.tb_training_loop_log_sequence(losses, x_new, i, nca,write_images=WRITE_IMAGES,LOG_EVERY=LOG_EVERY)
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/tensorboard_log.py", line 70, in tb_training_loop_log_sequence
+    self.log_model_parameters(model,i)
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/tensorboard_log.py", line 38, in log_model_parameters
+    kernel_weight_figs = plot_weight_kernel_boxplot(nca)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/NCA_visualiser.py", line 119, in plot_weight_kernel_boxplot
+    figs.append(plot_to_image(figure))
+                ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/NCA_visualiser.py", line 14, in plot_to_image
+    figure.savefig(buf, format='png')
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/matplotlib/figure.py", line 3490, in savefig
+    self.canvas.print_figure(fname, **kwargs)
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/matplotlib/backend_bases.py", line 2184, in print_figure
+    result = print_method(
+             ^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/matplotlib/backend_bases.py", line 2040, in <lambda>
+    print_method = functools.wraps(meth)(lambda *args, **kwargs: meth(
+                                                                 ^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/matplotlib/backends/backend_agg.py", line 481, in print_png
+    self._print_pil(filename_or_obj, "png", pil_kwargs, metadata)
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/matplotlib/backends/backend_agg.py", line 430, in _print_pil
+    mpl.image.imsave(
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/matplotlib/image.py", line 1657, in imsave
+    image.save(fname, **pil_kwargs)
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/PIL/Image.py", line 2568, in save
+    save_handler(self, fp, filename)
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/PIL/PngImagePlugin.py", line 1431, in _save
+    ImageFile._save(im, _idat(fp, chunk), [("zip", (0, 0) + im.size, 0, rawmode)])
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/PIL/ImageFile.py", line 551, in _save
+    _encode_tile(im, fp, tile, bufsize, None, exc)
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/PIL/ImageFile.py", line 570, in _encode_tile
+    errcode, data = encoder.encode(bufsize)[1:]
+                    ^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

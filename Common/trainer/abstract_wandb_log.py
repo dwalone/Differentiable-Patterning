@@ -2,6 +2,7 @@ import wandb
 import numpy as np
 from jaxtyping import Float, Array
 from einops import rearrange
+import jax.numpy as jnp
 wandb.login(key="e5b76dd08e1a70d547f6c8fc6b4d2621d87cd3b1")
 class Train_log(object):
     def __init__(
@@ -19,7 +20,15 @@ class Train_log(object):
         Log data at the start of training. Defined as a separate function to allow for overwriting in subclasses
         """
         outputs = np.array(data)
-        self.log_image("True sequence RGB", rearrange(outputs, "Batch Time C x y ->(Batch x) (Time y) C")[:,:,:3], step=None)
+        #self.log_image("True sequence RGB", rearrange(outputs, "Batch Time C x y ->(Batch x) (Time y) C")[:,:,:3], step=None)
+        imgs = rearrange(outputs, "Batch Time C x y ->(Batch x) (Time y) C")
+        # pad up to 3 channels if needed
+        c = imgs.shape[-1]
+        if c < 3:
+            pad = jnp.zeros((*imgs.shape[:2], 3-c), dtype=imgs.dtype)
+            imgs = jnp.concatenate([imgs, pad], axis=-1)
+        imgs = imgs[..., :3]
+        self.log_image("True sequence RGB", imgs, step=None)
 
     def log_scalar(self, tag, value, step=None):
         wandb.log({tag: value}, step=step)

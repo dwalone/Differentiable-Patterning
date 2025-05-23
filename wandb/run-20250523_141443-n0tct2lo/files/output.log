@@ -1,0 +1,25 @@
+Traceback (most recent call last):
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/demo/schnakenberg_train_nca_to_pde_demo.py", line 99, in <module>
+    trainer.train(
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer.py", line 301, in train
+    self.setup_logging("wandb",wandb_args=wandb_args)
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer.py", line 155, in setup_logging
+    self.LOGGER = NCA_Train_log(data=self._data_raw,wandb_config=wandb_args)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/Common/trainer/abstract_wandb_log.py", line 15, in __init__
+    self.log_data_at_init(data)
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/Common/trainer/abstract_wandb_log.py", line 22, in log_data_at_init
+    self.log_image("True sequence RGB", rearrange(outputs, "Batch Time C x y ->(Batch x) (Time y) C")[:,:,:3], step=None)
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/Common/trainer/abstract_wandb_log.py", line 66, in log_image
+    self.log_image_single(tag, images, step)
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/Common/trainer/abstract_wandb_log.py", line 34, in log_image_single
+    wandb.log({tag: wandb.Image(image)}, step=step)
+                    ^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/wandb/sdk/data_types/image.py", line 178, in __init__
+    self._initialize_from_data(data_or_path, mode, file_type)
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/wandb/sdk/data_types/image.py", line 331, in _initialize_from_data
+    mode = mode or self.guess_mode(data, file_type)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/wandb/sdk/data_types/image.py", line 503, in guess_mode
+    raise ValueError(
+ValueError: Un-supported shape for image conversion [64, 512, 2]

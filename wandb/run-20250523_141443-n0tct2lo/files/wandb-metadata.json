@@ -1,0 +1,16 @@
+{
+  "os": "macOS-14.1-arm64-arm-64bit",
+  "python": "CPython 3.12.10",
+  "startedAt": "2025-05-23T13:14:43.982715Z",
+  "program": "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/demo/schnakenberg_train_nca_to_pde_demo.py",
+  "codePath": "demo/schnakenberg_train_nca_to_pde_demo.py",
+  "git": {
+    "remote": "https://github.com/AlexDR1998/Differentiable-Patterning.git",
+    "commit": "14a4fcc8942e6cfc5b553b79bd3f086369aae562"
+  },
+  "email": "s2629686@ed.ac.uk",
+  "root": "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning",
+  "host": "Rutwiks-MacBook-Air.local",
+  "executable": "/opt/anaconda3/envs/jax_cpu/bin/python",
+  "codePathLocal": "demo/schnakenberg_train_nca_to_pde_demo.py"
+}
