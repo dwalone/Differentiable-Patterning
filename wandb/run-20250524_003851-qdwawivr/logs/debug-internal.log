@@ -1,0 +1,15 @@
+{"time":"2025-05-24T00:38:51.203113+01:00","level":"INFO","msg":"stream: starting","core version":"0.19.11","symlink path":"/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/wandb/run-20250524_003851-qdwawivr/logs/debug-core.log"}
+{"time":"2025-05-24T00:38:51.503953+01:00","level":"INFO","msg":"created new stream","id":"qdwawivr"}
+{"time":"2025-05-24T00:38:51.504007+01:00","level":"INFO","msg":"stream: started","id":"qdwawivr"}
+{"time":"2025-05-24T00:38:51.504078+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"qdwawivr"}
+{"time":"2025-05-24T00:38:51.504272+01:00","level":"INFO","msg":"handler: started","stream_id":"qdwawivr"}
+{"time":"2025-05-24T00:38:51.50429+01:00","level":"INFO","msg":"sender: started","stream_id":"qdwawivr"}
+{"time":"2025-05-24T00:38:51.743092+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-05-24T00:38:54.081568+01:00","level":"INFO","msg":"stream: closing","id":"qdwawivr"}
+{"time":"2025-05-24T00:38:54.081877+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-05-24T00:38:54.081952+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-05-24T00:38:54.623889+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-05-24T00:38:54.86122+01:00","level":"INFO","msg":"sender: closed","stream_id":"qdwawivr"}
+{"time":"2025-05-24T00:38:54.86226+01:00","level":"INFO","msg":"handler: closed","stream_id":"qdwawivr"}
+{"time":"2025-05-24T00:38:54.862221+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"qdwawivr"}
+{"time":"2025-05-24T00:38:54.862356+01:00","level":"INFO","msg":"stream: closed","id":"qdwawivr"}

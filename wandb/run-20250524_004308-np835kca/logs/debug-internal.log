@@ -1,0 +1,15 @@
+{"time":"2025-05-24T00:43:08.391718+01:00","level":"INFO","msg":"stream: starting","core version":"0.19.11","symlink path":"/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/wandb/run-20250524_004308-np835kca/logs/debug-core.log"}
+{"time":"2025-05-24T00:43:08.660287+01:00","level":"INFO","msg":"created new stream","id":"np835kca"}
+{"time":"2025-05-24T00:43:08.660334+01:00","level":"INFO","msg":"stream: started","id":"np835kca"}
+{"time":"2025-05-24T00:43:08.660345+01:00","level":"INFO","msg":"handler: started","stream_id":"np835kca"}
+{"time":"2025-05-24T00:43:08.660378+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"np835kca"}
+{"time":"2025-05-24T00:43:08.660357+01:00","level":"INFO","msg":"sender: started","stream_id":"np835kca"}
+{"time":"2025-05-24T00:43:08.919266+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-05-24T00:43:11.256213+01:00","level":"INFO","msg":"stream: closing","id":"np835kca"}
+{"time":"2025-05-24T00:43:11.256269+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-05-24T00:43:11.256347+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-05-24T00:43:11.819664+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-05-24T00:43:12.047434+01:00","level":"INFO","msg":"handler: closed","stream_id":"np835kca"}
+{"time":"2025-05-24T00:43:12.047448+01:00","level":"INFO","msg":"sender: closed","stream_id":"np835kca"}
+{"time":"2025-05-24T00:43:12.047436+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"np835kca"}
+{"time":"2025-05-24T00:43:12.047891+01:00","level":"INFO","msg":"stream: closed","id":"np835kca"}

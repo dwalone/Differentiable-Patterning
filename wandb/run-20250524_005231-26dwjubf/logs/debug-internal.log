@@ -1,0 +1,25 @@
+{"time":"2025-05-24T00:52:31.975446+01:00","level":"INFO","msg":"stream: starting","core version":"0.19.11","symlink path":"/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/wandb/run-20250524_005231-26dwjubf/logs/debug-core.log"}
+{"time":"2025-05-24T00:52:32.28354+01:00","level":"INFO","msg":"created new stream","id":"26dwjubf"}
+{"time":"2025-05-24T00:52:32.283608+01:00","level":"INFO","msg":"stream: started","id":"26dwjubf"}
+{"time":"2025-05-24T00:52:32.283632+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"26dwjubf"}
+{"time":"2025-05-24T00:52:32.283938+01:00","level":"INFO","msg":"handler: started","stream_id":"26dwjubf"}
+{"time":"2025-05-24T00:52:32.283988+01:00","level":"INFO","msg":"sender: started","stream_id":"26dwjubf"}
+{"time":"2025-05-24T00:52:32.561442+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-05-24T00:52:40.766555+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-24T00:52:40.816275+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-24T00:52:40.949964+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-24T00:52:40.950176+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-24T00:52:40.950436+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-24T00:52:41.561564+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-24T00:52:42.082678+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-24T00:52:42.35077+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-24T00:52:42.380137+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-24T00:52:42.441782+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-24T01:03:56.193049+01:00","level":"INFO","msg":"stream: closing","id":"26dwjubf"}
+{"time":"2025-05-24T01:03:56.193724+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-05-24T01:03:56.193782+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-05-24T01:03:56.733879+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-05-24T01:03:56.98619+01:00","level":"INFO","msg":"handler: closed","stream_id":"26dwjubf"}
+{"time":"2025-05-24T01:03:56.986161+01:00","level":"INFO","msg":"sender: closed","stream_id":"26dwjubf"}
+{"time":"2025-05-24T01:03:56.986624+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"26dwjubf"}
+{"time":"2025-05-24T01:03:56.986715+01:00","level":"INFO","msg":"stream: closed","id":"26dwjubf"}

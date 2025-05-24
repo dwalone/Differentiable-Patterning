@@ -1,0 +1,55 @@
+_wandb:
+    value:
+        cli_version: 0.19.11
+        m: []
+        python_version: 3.12.10
+        t:
+            "1":
+                - 12
+                - 45
+                - 49
+                - 55
+            "2":
+                - 12
+                - 45
+                - 49
+                - 55
+            "3":
+                - 15
+                - 16
+                - 23
+                - 55
+            "4": 3.12.10
+            "5": 0.19.11
+            "8":
+                - 5
+            "12": 0.19.11
+            "13": darwin-arm64
+MODEL:
+    value:
+        ACTIVATION: relu
+        FIRE_RATE: 1
+        KERNEL_STR:
+            - ID
+            - LAP
+            - GRAD
+        MODEL: NCA
+        N_CHANNELS: 8
+        PADDING: CIRCULAR
+TRAINING:
+    value:
+        BOUNDARY_REGULARISER: 1
+        CLEAR_CACHE_EVERY: 100
+        LOG_EVERY: 50
+        LOOP_AUTODIFF: lax
+        LOSS_FUNC_STR: euclidean
+        SPARSE_PRUNING: false
+        STATE_REGULARISER: 1
+        TARGET_SPARSITY: 0.5
+        WARMUP: 50
+        WRITE_IMAGES: true
+        iters: 8000
+        optimiser:
+            - optax.transforms._combining.chain.<locals>.init_fn
+            - optax.transforms._combining.chain.<locals>.update_fn
+        t: 32

@@ -1,0 +1,90 @@
+Logging training to: logs/demo/train_nca_to_pde_schnakenberg/train
+Saving model to: models/demo/train_nca_to_pde_schnakenberg
+  0%|                                                  | 0/8000 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/lax/lax.py", line 218, in _broadcast_shapes_uncached
+    return _try_broadcast_shapes(*rank_promoted_shapes, name='broadcast_shapes')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/lax/lax.py", line 135, in _try_broadcast_shapes
+    raise TypeError(f'{name} got incompatible shapes for broadcasting: '
+TypeError: broadcast_shapes got incompatible shapes for broadcasting: (1, 1, 1, 2), (7, 8, 64, 64).
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/lax/lax.py", line 196, in broadcast_shapes
+    return _broadcast_shapes_cached(*shapes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/util.py", line 279, in wrapper
+    return cached(config.trace_context() if trace_context_in_key else _ignore(),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/util.py", line 273, in cached
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/lax/lax.py", line 202, in _broadcast_shapes_cached
+    return _broadcast_shapes_uncached(*shapes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/lax/lax.py", line 221, in _broadcast_shapes_uncached
+    raise ValueError(f"Incompatible shapes for broadcasting: shapes={list(shapes)}") from err
+ValueError: Incompatible shapes for broadcasting: shapes=[(2,), (7, 8, 64, 64)]
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/lax/lax.py", line 218, in _broadcast_shapes_uncached
+    return _try_broadcast_shapes(*rank_promoted_shapes, name='broadcast_shapes')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/lax/lax.py", line 135, in _try_broadcast_shapes
+    raise TypeError(f'{name} got incompatible shapes for broadcasting: '
+TypeError: broadcast_shapes got incompatible shapes for broadcasting: (1, 1, 1, 2), (7, 8, 64, 64).
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/demo/schnakenberg_train_nca_to_pde_demo.py", line 102, in <module>
+    trainer.train(
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer_dynamic.py", line 279, in train
+    nca,x_new,y_new,t,opt_state,key,mean_loss,losses = make_step(nca, x, y, t, opt_state,key)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/equinox/_jit.py", line 209, in __call__
+    return _call(self, False, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/equinox/_jit.py", line 263, in _call
+    marker, _, _ = out = jit_wrapper._cached(
+                         ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer_dynamic.py", line 234, in make_step
+    loss_x,grads = compute_loss(nca_diff,nca_static,x,y,t,key)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer_dynamic.py", line 215, in compute_loss
+    (key, x, reg_log, boundary_reg_log), _ = eqx.internal.scan(
+                                             ^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/equinox/internal/_loop/loop.py", line 181, in scan
+    return lax.scan(f, init, xs, length)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer_dynamic.py", line 189, in nca_step
+    x = jax.tree_util.tree_map(lambda old, d: old + dt_i * d,x, delta)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer_dynamic.py", line 189, in <lambda>
+    x = jax.tree_util.tree_map(lambda old, d: old + dt_i * d,x, delta)
+                                                    ~~~~~^~~
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/numpy/array_methods.py", line 1060, in op
+    return getattr(self.aval, f"_{name}")(self, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/numpy/array_methods.py", line 579, in deferring_binary_op
+    return binary_op(*args)
+           ^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/numpy/ufunc_api.py", line 180, in __call__
+    return call(*args)
+           ^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/numpy/ufuncs.py", line 1279, in multiply
+    x, y = promote_args("multiply", x, y)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/numpy/util.py", line 228, in promote_args
+    return promote_shapes(fun_name, *promote_dtypes(*args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/jax/_src/numpy/util.py", line 64, in promote_shapes
+    result_rank = len(lax.broadcast_shapes(*shapes))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: Incompatible shapes for broadcasting: shapes=[(2,), (7, 8, 64, 64)]
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.

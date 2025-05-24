@@ -1,0 +1,30 @@
+Logging training to: logs/demo/train_nca_to_pde_schnakenberg/train
+Saving model to: models/demo/train_nca_to_pde_schnakenberg
+  0%|                                                  | 0/8000 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/demo/schnakenberg_train_nca_to_pde_demo.py", line 102, in <module>
+    trainer.train(
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer_dynamic.py", line 277, in train
+    nca,x_new,y_new,t,opt_state,key,mean_loss,losses = make_step(nca, x, y, t, opt_state,key)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/equinox/_jit.py", line 209, in __call__
+    return _call(self, False, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/equinox/_jit.py", line 263, in _call
+    marker, _, _ = out = jit_wrapper._cached(
+                         ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer_dynamic.py", line 232, in make_step
+    loss_x,grads = compute_loss(nca_diff,nca_static,x,y,t,key)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer_dynamic.py", line 213, in compute_loss
+    (key, x, reg_log, boundary_reg_log), _ = eqx.internal.scan(
+                                             ^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/envs/jax_cpu/lib/python3.12/site-packages/equinox/internal/_loop/loop.py", line 181, in scan
+    return lax.scan(f, init, xs, length)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/NCA/trainer/NCA_trainer_dynamic.py", line 186, in nca_step
+    delta = x_proposed - x
+            ~~~~~~~~~~~^~~
+TypeError: unsupported operand type(s) for -: 'list' and 'list'
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.

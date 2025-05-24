@@ -1,0 +1,27 @@
+{"time":"2025-05-23T17:34:44.092349+01:00","level":"INFO","msg":"stream: starting","core version":"0.19.11","symlink path":"/Users/rutwik/Documents/MSc/Thesis/Differentiable-Patterning/wandb/run-20250523_173444-ksykyasx/logs/debug-core.log"}
+{"time":"2025-05-23T17:34:44.394125+01:00","level":"INFO","msg":"created new stream","id":"ksykyasx"}
+{"time":"2025-05-23T17:34:44.394327+01:00","level":"INFO","msg":"stream: started","id":"ksykyasx"}
+{"time":"2025-05-23T17:34:44.394618+01:00","level":"INFO","msg":"writer: Do: started","stream_id":"ksykyasx"}
+{"time":"2025-05-23T17:34:44.394805+01:00","level":"INFO","msg":"handler: started","stream_id":"ksykyasx"}
+{"time":"2025-05-23T17:34:44.395002+01:00","level":"INFO","msg":"sender: started","stream_id":"ksykyasx"}
+{"time":"2025-05-23T17:34:44.626282+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-05-23T17:34:47.900859+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T17:34:47.917172+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T17:34:47.974906+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T17:34:47.974999+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T17:34:47.975151+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T17:34:48.325043+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T17:34:48.626299+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T17:34:48.779442+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T17:34:48.794022+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T17:34:48.829973+01:00","level":"WARN","msg":"handler: ignoring partial history record","step":0,"current":1}
+{"time":"2025-05-23T19:08:31.677647+01:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-05-23T19:17:21.664168+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-05-23T19:17:21.664307+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-05-23T19:17:22.406018+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-05-23T19:17:22.688814+01:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2025-05-23T19:17:22.706968+01:00","level":"INFO","msg":"stream: closing","id":"ksykyasx"}
+{"time":"2025-05-23T19:17:22.707008+01:00","level":"INFO","msg":"handler: closed","stream_id":"ksykyasx"}
+{"time":"2025-05-23T19:17:22.70702+01:00","level":"INFO","msg":"sender: closed","stream_id":"ksykyasx"}
+{"time":"2025-05-23T19:17:22.707224+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":"ksykyasx"}
+{"time":"2025-05-23T19:17:22.707246+01:00","level":"INFO","msg":"stream: closed","id":"ksykyasx"}
