@@ -77,6 +77,11 @@ class Train_log(object):
             raise ValueError("Image must be 3D or 4D (batch)")
 
     def log_histogram(self, tag, values, step=None):
+        # skip if all values are identical (zero variance)
+        import numpy as _np
+        arr = _np.asarray(values)
+        if arr.size == 0 or _np.allclose(arr.min(), arr.max()):
+            return
         wandb.log({tag: wandb.Histogram(values)}, step=step)
 
     def log_text(self, tag, text, step=None):

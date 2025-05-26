@@ -96,7 +96,7 @@ nca = NCA(
 trainer = NCA_Trainer(
     nca,
     Y,
-    model_filename="demo/train_nca_to_pde_fhn",
+    model_filename="demo/train_nca_to_pde_fhn_fixed",
     DATA_AUGMENTER=DataAugmenter,
     GRAD_LOSS=True
 )
@@ -108,7 +108,7 @@ optimiser = optax.chain(
     optax.nadam(schedule)
 )
 
-print("Saving to:", os.path.abspath("models/demo/train_nca_to_pde_fhn"))
+print("Saving to:", os.path.abspath("models/demo/train_nca_to_pde_fhn_fixed"))
 
 #--- Run training
 trainer.train(
