@@ -60,13 +60,13 @@ T, Y = solver(ts, x0)
 
 # reshape and keep only U-channel for NCA training
 Y = rearrange(Y, "T B C X Y -> B T C X Y")
-#Y = Y[:, :, :1]                                 # drop V
+Y = Y[:, :, :1]                                 # drop V
 
-#Y = (Y - Y.min()) / (Y.max() - Y.min())         # normalize [0,1]
-def normalize(batch):
-    mn, mx = batch.min(), batch.max()
-    return (batch - mn) / (mx - mn)
-Y = jax.vmap(normalize)(Y)
+Y = (Y - Y.min()) / (Y.max() - Y.min())         # normalize [0,1]
+# def normalize(batch):
+#     mn, mx = batch.min(), batch.max()
+#     return (batch - mn) / (mx - mn)
+# Y = jax.vmap(normalize)(Y)
 
 Y = Y[:, ::TIME_SAMPLING]                       # downsample in time
 
