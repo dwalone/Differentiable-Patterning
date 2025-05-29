@@ -13,7 +13,7 @@ from PDE.model.solver.semidiscrete_solver import PDE_solver
 from NCA.model.NCA_model import NCA
 from NCA.trainer.NCA_trainer import NCA_Trainer
 from NCA.trainer.data_augmenter_nca_from_pde_2 import DataAugmenter
-import Common.trainer.loss as loss          # <— import your loss module
+import Common.trainer.loss as loss          # your loss module
 
 # 1) Hyper‐parameters (must match training)
 CHANNELS      = 8
@@ -28,37 +28,20 @@ NUM_INTERVALS = 8
 SIZE          = 64
 BATCHES       = 1   # single trajectory
 
-# 2) Build “ground-truth” PDE data
-key = jr.PRNGKey(0)
+# fixed PDE parameters
 a, b, D = 0.2, 0.8, 50.0
 U_eq = a + b
 V_eq = b / (U_eq**2)
 noise = 0.05
 
-key, k1 = jr.split(key)
-U0 = U_eq + noise * jr.normal(k1, (BATCHES,1,SIZE,SIZE))
-key, k2 = jr.split(key)
-V0 = V_eq + noise * jr.normal(k2, (BATCHES,1,SIZE,SIZE))
-x0 = jnp.concatenate([U0, V0], axis=1)
-
+# Pre‐build the spatial op + PDE solver
 op = Ops(PADDING=PADDING, dx=DX, KERNEL_SCALE=3)
-for _ in range(3):
-    x0 = jax.vmap(op.Average, in_axes=0, out_axes=0)(x0)
-
 func   = F_schnakenberg(PADDING=PADDING, dx=DX, KERNEL_SCALE=1,
                         a=a, b=b, D=D)
 vfunc  = eqx.filter_vmap(func, in_axes=(None,0,None), out_axes=0)
 solver = PDE_solver(vfunc, DT_MICRO)
 
-T_steps = TIME_SAMPLING * NUM_INTERVALS
-ts = jnp.linspace(0.0, float(T_steps), T_steps)
-_, Y_full = solver(ts=ts, y0=x0)               # [T_steps, B, 2, H, W]
-
-Y = rearrange(Y_full, "T B C X Y -> B T C X Y")
-Y_snap = Y[:, ::TIME_SAMPLING]                 # [B,K,2,H,W]
-Y_snap = Y_snap[0]                             # [K,2,H,W]
-
-# 3) Load trained NCA
+# 2) Load trained NCA
 MODEL_FILE = "models/demo/train_nca_to_pde_schnakenberg.eqx"
 dummy_nca = NCA(
     N_CHANNELS=CHANNELS,
@@ -71,7 +54,7 @@ dummy_nca = NCA(
 )
 nca = eqx.tree_deserialise_leaves(MODEL_FILE, dummy_nca)
 
-# 4) Roll-out NCA (constant dt=1 per micro-step)
+# 3) Roll‐out function (constant dt=1 per micro‐step)
 def rollout_nca(nca, x0, n_steps, n_intervals, key):
     traj = []
     x = x0
@@ -82,47 +65,70 @@ def rollout_nca(nca, x0, n_steps, n_intervals, key):
             x = nca(x, boundary_callback=lambda z: z, key=subk)
     return jnp.stack(traj, axis=0)  # [K, C, H, W]
 
-hidden = jnp.zeros((CHANNELS-2, SIZE, SIZE), dtype=x0.dtype)
-init_state = jnp.concatenate([Y_snap[0], hidden], axis=0)  # [C,H,W]
+# Prepare a zero‐pad channel tensor
+hidden = jnp.zeros((CHANNELS-2, SIZE, SIZE), dtype=jnp.float32)
 
-X_pred = rollout_nca(nca, init_state, TIME_SAMPLING, NUM_INTERVALS, jr.PRNGKey(42))
-# X_pred: [K, C, H, W]
-
-# 5) Build a tiny “validation” dataset just so the trainer hooks up its loss exactly
-val_data = jnp.stack([
-    jnp.concatenate([
-        Y_snap,
-        jnp.broadcast_to(hidden, (NUM_INTERVALS, *hidden.shape))
-    ], axis=1)
-], axis=0)  # [1, K, C, H, W]
-
+# 4) Instantiate a “dummy” trainer for just computing loss
 trainer = NCA_Trainer(
     nca,
-    val_data,
-    model_filename=None,       # no saving/logging
+    data=jnp.zeros((1, NUM_INTERVALS, CHANNELS, SIZE, SIZE)),  # placeholder
+    model_filename=None,
     DATA_AUGMENTER=DataAugmenter,
     GRAD_LOSS=True,
     OBS_CHANNELS=2
 )
-
-# — patch in exactly the same per-step loss you used during training —
+# Patch in the same loss you used in training:
 trainer._loss_func = loss.euclidean
 
-# 6) Compute your per-interval validation loss
-losses = []
-for i in range(NUM_INTERVALS):
-    x_i = X_pred[i]      # [C,H,W]
-    y_i = Y_snap[i]      # [C,H,W]
-    key_i = jr.fold_in(jr.PRNGKey(0), i)
-    l = trainer.loss_func(
-        x_i[None, ...],  # batch-dim = 1
-        y_i[None, ...],
-        key_i
-    )
-    losses.append(float(l[0]))
+def one_validation_run(seed: int):
+    # A) sample a fresh noisy PDE IC
+    key = jr.PRNGKey(seed)
+    key, k1 = jr.split(key)
+    U0 = U_eq + noise * jr.normal(k1, (BATCHES,1,SIZE,SIZE))
+    key, k2 = jr.split(key)
+    V0 = V_eq + noise * jr.normal(k2, (BATCHES,1,SIZE,SIZE))
+    x0 = jnp.concatenate([U0, V0], axis=1)
+    # same smoothing
+    for _ in range(3):
+        x0 = jax.vmap(op.Average, in_axes=0, out_axes=0)(x0)
 
-losses = jnp.array(losses)
-mean_val_loss = float(jnp.mean(losses))
+    # B) re‐solve the PDE and downsample
+    T_steps = TIME_SAMPLING * NUM_INTERVALS
+    ts = jnp.linspace(0.0, float(T_steps), T_steps)
+    _, Y_full = solver(ts=ts, y0=x0)
+    Y = rearrange(Y_full, "T B C X Y -> B T C X Y")[0]     # [K,2,H,W]
+    Y_snap = Y[::TIME_SAMPLING]                           # [K,2,H,W]
 
-print("Validation loss per interval:", losses)
-print(f"Overall mean validation loss = {mean_val_loss:.5e}")
+    # C) roll out the NCA
+    init_state = jnp.concatenate([Y_snap[0], hidden], axis=0)  # [C,H,W]
+    X_pred = rollout_nca(nca, init_state, TIME_SAMPLING, NUM_INTERVALS, key)
+
+    # Now compute loss for all intervals 0→1, 1→2, …, 7→8:
+    interval_losses = []
+    for i in range(NUM_INTERVALS):
+        x_i   = X_pred[i][None,...]                                      # [1,C,H,W]
+        y_i   = jnp.concatenate([Y_snap[i+1], hidden], axis=0)[None,...] # [1,C,H,W]
+        key_i = jr.fold_in(jr.PRNGKey(seed), i)
+        l     = trainer.loss_func(x_i, y_i, key_i)  # shape [1]
+        interval_losses.append(l[0])
+    return jnp.stack(interval_losses)  # shape [NUM_INTERVALS]
+
+seeds = list(range(10))
+seeds = [x * 5 for x in seeds]
+# This now gives a list of 10 arrays, each of shape [8]
+all_losses = jnp.stack([one_validation_run(s) for s in seeds], axis=0)
+# all_losses.shape == (10, 8)
+
+# Mean/std _per interval_ across the 10 trials:
+mean_per_interval = all_losses.mean(axis=0)  # shape [8]
+std_per_interval  = all_losses.std(axis=0)   # shape [8]
+
+print("Per-interval loss (mean ± std):")
+for i,(m,s) in enumerate(zip(mean_per_interval, std_per_interval)):
+    print(f"  Interval {i}→{i+1}: {m:.5f} ± {s:.5f}")
+
+# Overall across _all_ intervals and seeds:
+overall_mean = all_losses.mean()
+overall_std  = all_losses.std()
+print(f"\nOverall mean ± std = {overall_mean:.5e} ± {overall_std:.5e}")
+
