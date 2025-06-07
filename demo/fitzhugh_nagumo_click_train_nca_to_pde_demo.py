@@ -1,8 +1,7 @@
 #!/usr/bin/env python
+import jax
 import os
 import time
-
-import jax
 import jax.random as jr
 import jax.numpy as jnp
 import equinox as eqx
@@ -13,18 +12,18 @@ import sys
 sys.path.append('..')
 
 from Common.model.spatial_operators import Ops
-from PDE.model.fixed_models.update_fitzhugh_nagumo import F as F_fhn
+from PDE.model.fixed_models.update_fhn import F as F_fhn
 from PDE.model.solver.semidiscrete_solver import PDE_solver
 from NCA.trainer.NCA_trainer import NCA_Trainer
 from NCA.trainer.data_augmenter_nca_from_pde_2 import DataAugmenter
 from NCA.model.NCA_model import NCA
 
 #--- Training hyperparameters
-ITERS         = 20000        # total training iterations
+ITERS         = 8000        # total training iterations
 CHANNELS      = 16           # NCA hidden channels
 SIZE          = 64          # spatial grid size
 BATCHES       = 2           # how many trajectories per batch
-TIME_SAMPLING = 50          # solver steps between recorded frames
+TIME_SAMPLING = 32          # solver steps between recorded frames
 LEARN_RATE    = 5e-5        # base learning rate
 
 # ----------------------------------------------------------------------
@@ -67,13 +66,13 @@ def make_spike_ic(key, B, H, W, N_clicks=5, sigma=1.5, amplitude=1.0):
 # ----------------------------------------------------------------------
 # 2) Build “true” FitzHugh–Nagumo trajectories
 # ----------------------------------------------------------------------
-key = jr.PRNGKey(int(time.time()))
+key = jr.PRNGKey(0)
 
 # FHN parameters (must match PDE solver below)
-D_true    = 0.05         # slower inhibitor diffusion
-eps_v_true = 0.005       # stronger timescale separation
-a_v_true   = 0.5
-a_z_true   = 0.0         # zero offset → excitable pulses
+D_true    = 20         # slower inhibitor diffusion
+eps_v_true = 0.5       # stronger timescale separation
+a_v_true   = 1
+a_z_true   = -0.1         # zero offset → excitable pulses
 
 # domain and discretization
 dx = 1.0
@@ -113,20 +112,14 @@ vfunc = eqx.filter_vmap(func, in_axes=(None,0,None), out_axes=0)
 solver = PDE_solver(vfunc, dt)
 
 # 6) integrate and collect snapshots
-ts = jnp.linspace(0.0, TIME_SAMPLING * 8 * dt, TIME_SAMPLING * 8, dtype=jnp.float64)
+ts = jnp.linspace(0.0, TIME_SAMPLING * 8 * 0.1, TIME_SAMPLING * 8, dtype=jnp.float64)
 T, Y = solver(ts=ts, y0=x0)  # Y: [T, B, 2, H, W] float64
 
 # 7) reshape & normalize, keep both channels
 Y = rearrange(Y, "T B C X Y -> B T C X Y")  # [B, T, 2, H, W]
-
-def normalize(batch):
-    mn, mx = batch.min(), batch.max()
-    return (batch - mn) / (mx - mn)
-
-Y = jax.vmap(normalize)(Y)
-
-# 8) downsample in time to one frame per 32 solver‐steps
-Y = Y[:, ::TIME_SAMPLING]  # [B, 8, 2, H, W]
+Y = Y[:, :, :1]                                 # drop V
+Y = (Y - Y.min()) / (Y.max() - Y.min())         # normalize [0,1]
+Y = Y[:, ::TIME_SAMPLING]                       # downsample in time
 
 # ----------------------------------------------------------------------
 # 9) build NCA & trainer

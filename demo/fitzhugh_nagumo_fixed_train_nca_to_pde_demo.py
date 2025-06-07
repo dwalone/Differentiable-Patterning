@@ -13,7 +13,7 @@ import sys
 sys.path.append('..')
 
 from Common.model.spatial_operators import Ops
-from PDE.model.fixed_models.update_fitzhugh_nagumo import F as F_fhn
+from PDE.model.fixed_models.update_fhn import F as F_fhn
 from PDE.model.solver.semidiscrete_solver import PDE_solver
 from NCA.trainer.NCA_trainer import NCA_Trainer
 from NCA.trainer.data_augmenter_nca_from_pde_2 import DataAugmenter

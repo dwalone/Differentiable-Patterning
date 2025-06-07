@@ -4,38 +4,75 @@
 # -----------------------------------------------------------------------------
 import argparse, os, sys, time, functools
 import jax
+jax.config.update("jax_enable_x64", False)
 import jax.numpy as jnp
 import jax.random as jr
 import equinox as eqx
 import matplotlib.pyplot as plt
 from einops import rearrange
+from einops import reduce
 
-sys.path.append("..")                                    # repo root
+sys.path.append("..")                             
 from Common.model.spatial_operators import Ops
-from PDE.model.fixed_models.update_schnakenberg import F as F_schnakenberg
+from PDE.model.fixed_models.update_keller_segel import F as F_keller_segel
 from PDE.model.solver.semidiscrete_solver import PDE_solver
-from NCA.model.NCA_model import NCA                      # same class used in training
+from NCA.model.NCA_model import NCA
 
 # -----------------------------------------------------------------------------
 # 1. Hyper-parameters (identical to training)
 # -----------------------------------------------------------------------------
-CHANNELS      = 8
+CHANNELS      = 16
 KERNEL_STR    = ["ID", "LAP", "GRAD"]
 FIRE_RATE     = 1.0
 PADDING       = "CIRCULAR"
-KERNEL_SCALE  = 1
-DX            = 1.0
-DT_MICRO      = 5e-3
-TIME_SAMPLING = 32      # NCA micro-steps between PDE snapshots
-NUM_INTERVALS = 8       # number of snapshot intervals
+TIME_SAMPLING = 32    
+NUM_INTERVALS = 16      
 SIZE          = 64
-BATCHES       = 1       # single trajectory, as requested
+BATCHES       = 6
 
-# Schnakenberg parameters (same as training)
-a, b, D = 0.2, 0.8, 50.0
-U_eq = a + b
-V_eq = b / (U_eq**2)
-noise_amp = 0.05
+
+CELL_CHANNELS   = 1
+SIGNAL_CHANNELS = 1
+dx              = 0.5
+dt_true         = 0.1
+SOLVER_PARAMS   = {
+    "dt": dt_true,
+    "SOLVER": "heun",
+    "rtol": 1e-3,
+    "atol": 1e-3,
+    "ADAPTIVE": True,
+    "DTYPE": "float32"
+}
+
+# Keller–Segel coefficients
+alpha   = 0.01
+c       = 3.8
+D       = 0.8
+epsilon = 0.1
+
+# Trajectory parameters
+T_FINAL          = 200.0
+TIME_RESOLUTION  = 512   # number of saved frames between t=0 and t=200
+TIME_SAMPLING    = 32
+
+
+def make_random_ic(key, B, H, W, CELL_CHANNELS, SIGNAL_CHANNELS):
+    """
+    Returns an array of shape [B, C_total, H, W], dtype=float32:
+      - channel 0 (cell) ∼ Uniform(0, 0.1)
+      - channel 1 (signal) = 0
+    """
+    key, subkey = jr.split(key)
+    X = jr.uniform(
+        subkey,
+        shape=(B, CELL_CHANNELS + SIGNAL_CHANNELS, H, W),
+        minval=0.0,
+        maxval=0.1,
+        dtype=jnp.float32
+    )
+    # Zero out the signal channel
+    X = X.at[:, CELL_CHANNELS:].set(0.0)
+    return X
 
 # -----------------------------------------------------------------------------
 # 2. Command-line arguments
@@ -48,42 +85,53 @@ parser.add_argument("--outdir", type=str, default="inference_results",
 args = parser.parse_args()
 os.makedirs(args.outdir, exist_ok=True)
 
+
 # -----------------------------------------------------------------------------
-# 3. Build PDE RHS & solver – exactly as in training
+# 3. Build PDE RHS & solver
 # -----------------------------------------------------------------------------
-op    = Ops(PADDING=PADDING, dx=DX, KERNEL_SCALE=3)
-f_rhs = F_schnakenberg(PADDING=PADDING, dx=DX, KERNEL_SCALE=1,
-                       a=a, b=b, D=D)
-v_rhs = eqx.filter_vmap(f_rhs, in_axes=(None, 0, None), out_axes=0)
-solver = PDE_solver(v_rhs, DT_MICRO)
+func = F_keller_segel(
+    PADDING="CIRCULAR",
+    dx=dx,
+    KERNEL_SCALE=1,
+    alpha=alpha,
+    c=c,
+    D=D,
+    epsilon=epsilon
+)
+# wrap fhn so it handles batch axis
+vfunc = eqx.filter_vmap(func, in_axes=(None, 0, None), out_axes=0)
+solver = PDE_solver(vfunc, **SOLVER_PARAMS)
 
 # -----------------------------------------------------------------------------
 # 4. Generate ground-truth trajectory
 # -----------------------------------------------------------------------------
-key = jr.PRNGKey(0)
+key = jr.PRNGKey(1)
 
-# initial condition: equilibrium + small uniform noise  (shape [B,C,H,W])
-key, k1 = jr.split(key)
-U0 = (U_eq + noise_amp * jr.normal(k1,  (BATCHES, 1, SIZE, SIZE)))
-key, k2 = jr.split(key)
-V0 = (V_eq + noise_amp * jr.normal(k2,  (BATCHES, 1, SIZE, SIZE)))
-x0 = jnp.concatenate([U0, V0], axis=1)                  # [B,2,H,W]
+# 3) IC: random clicks, already float64
+key, subkey = jr.split(key)
+x0 = make_random_ic(
+    subkey,
+    B=BATCHES,
+    H=SIZE,
+    W=SIZE,
+    CELL_CHANNELS=CELL_CHANNELS,
+    SIGNAL_CHANNELS=SIGNAL_CHANNELS
+)  # shape [B, 2, 64, 64], float32
 
-# Smooth the IC the same way as training (3× 3×3 mean filter)
-for _ in range(3):
-    x0 = jax.vmap(op.Average, in_axes=0, out_axes=0)(x0)
+# One pass of circular averaging to smooth out high-frequency noise
+op = Ops(PADDING="CIRCULAR", dx=dx, KERNEL_SCALE=2)
+v_av = eqx.filter_vmap(op.Average, in_axes=0, out_axes=0)
+x0 = v_av(x0)  # shape still [B, 2, 64, 64]
 
 # Integrate PDE
-ts = jnp.linspace(0, TIME_SAMPLING * NUM_INTERVALS, TIME_SAMPLING * NUM_INTERVALS)
-_, Y = solver(ts, x0)                                   # Y: [T,B,2,H,W]
-Y = rearrange(Y, "T B C X Y -> B T C X Y")              # [B,T,C,H,W]
-Y = Y[:, :, :1]                                         # keep U-channel only
-
-# Global normalisation (identical to training)
-mn, mx = Y.min(), Y.max()
-Y = (Y - mn) / (mx - mn)
-Y = Y[:, ::TIME_SAMPLING]                               # down-sample in time
-assert Y.shape[1] == NUM_INTERVALS                      # [B,NUM_INTERVALS,1,H,W]
+ts = jnp.linspace(0.0, T_FINAL, TIME_RESOLUTION, dtype=jnp.float32)
+_, Y_full = solver(ts, x0)                                   # Y: [T,B,2,H,W]
+Y_full = rearrange(Y_full, "T B C X Y -> B T C X Y")
+for ch in range(CELL_CHANNELS + SIGNAL_CHANNELS):
+    ch_min = Y_full[:, :, ch].min()
+    ch_max = Y_full[:, :, ch].max()
+    Y_full = Y_full.at[:, :, ch].set((Y_full[:, :, ch] - ch_min) / (ch_max - ch_min))
+Y = Y_full[:, ::TIME_SAMPLING, :, :, :]
 
 # -----------------------------------------------------------------------------
 # 5. Load trained NCA
@@ -92,9 +140,7 @@ dummy_nca = NCA(
     N_CHANNELS=CHANNELS,
     KERNEL_STR=KERNEL_STR,
     ACTIVATION=jax.nn.relu,
-    PADDING=PADDING,
     FIRE_RATE=FIRE_RATE,
-    KERNEL_SCALE=KERNEL_SCALE,
     key=key,
 )
 nca = eqx.tree_deserialise_leaves(args.model, dummy_nca)
@@ -122,27 +168,58 @@ def rollout_single(initial_state, rng):
 v_rollout = jax.vmap(rollout_single, in_axes=(0, 0), out_axes=0)
 
 # Prepare NCA lattice: observed channel(s) in front, hidden-state zeros elsewhere
-hidden_shape  = (BATCHES, CHANNELS - 1, SIZE, SIZE)
-x_nca0 = jnp.concatenate([Y[:, 0], jnp.zeros(hidden_shape)], axis=1)  # [B,8,H,W]
+hidden_shape  = (BATCHES, CHANNELS - 2, SIZE, SIZE)
+x_nca0 = jnp.concatenate([Y[:, 0, :2], jnp.zeros(hidden_shape)], axis=1)  # [B,8,H,W]
 
 # Roll through all NUM_INTERVALS snapshots
 nca_preds = []
 x_cur = x_nca0
-k_batch = jr.split(key, BATCHES)                        # per-batch RNG keys
+k_batch = jr.split(key, BATCHES)              
 for step in range(NUM_INTERVALS):
-    nca_preds.append(x_cur[:, :1])                      # store U channel
-    x_cur = v_rollout(x_cur, k_batch)                  # 32 micro-steps
+    nca_preds.append(x_cur[:, :2])                     
+    x_cur = v_rollout(x_cur, k_batch)  
 
 nca_preds = jnp.stack(nca_preds, axis=1)                # [B,T,1,H,W]
 
 # Apply the same normalisation as GT
 #nca_preds = (nca_preds - mn) / (mx - mn)
 
-# -----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------- 
 # 7. Loss – same Euclidean metric as training
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------- 
 loss = jnp.mean((nca_preds - Y) ** 2)
 print(f"Normalised Euclidean loss over the trajectory: {float(loss):.6e}")
+# # ----------------------------------------------------------------------------- 
+# # 7. Multi-scale loss (scales 1,2,4 – exactly like the trainer)
+# # ----------------------------------------------------------------------------- 
+# LOSS_SCALES = [1, 2, 4]
+
+# def _downsample(arr, d):
+#     """Mean-pool by factor d in both spatial dims using einops.reduce"""
+#     if d == 1:
+#         return arr
+#     return reduce(
+#         arr,
+#         "B T C (h dh) (w dw) -> B T C h w",
+#         "mean",
+#         dh=d,
+#         dw=d,
+#     )
+
+# ms_losses = []
+# for d in LOSS_SCALES:
+#     Xd = _downsample(nca_preds, d)
+#     Yd = _downsample(Y,         d)
+#     ms_losses.append(jnp.mean((Xd - Yd) ** 2))
+
+# loss = jnp.mean(jnp.stack(ms_losses))
+# print(
+#     "Multi-scale Euclidean loss  "
+#     + "/".join(f"d{d}:{l:.4f}" for d, l in zip(LOSS_SCALES, ms_losses))
+#     + f"   ➜   mean: {float(loss):.4f}"
+# )
+
 
 # -----------------------------------------------------------------------------
 # 8. Save trajectory images: GT • NCA • error

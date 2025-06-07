@@ -26,7 +26,7 @@ TIME_SAMPLING = 32          # frames between snapshots
 LEARN_RATE    = 1e-4        # base learning rate
 
 # build a “true” Schnakenberg trajectory
-key       = jr.PRNGKey(int(time.time()))
+key       = jr.PRNGKey(0)
 a_true, b_true, D_true = 0.2, 0.8, 50.0
 # steady state (a + b,  b/(a+b)^2)
 U_eq      = a_true + b_true
@@ -61,13 +61,7 @@ T, Y = solver(ts, x0)
 # reshape and keep only U-channel for NCA training
 Y = rearrange(Y, "T B C X Y -> B T C X Y")
 Y = Y[:, :, :1]                                 # drop V
-
 Y = (Y - Y.min()) / (Y.max() - Y.min())         # normalize [0,1]
-# def normalize(batch):
-#     mn, mx = batch.min(), batch.max()
-#     return (batch - mn) / (mx - mn)
-# Y = jax.vmap(normalize)(Y)
-
 Y = Y[:, ::TIME_SAMPLING]                       # downsample in time
 
 #--- build NCA and trainer

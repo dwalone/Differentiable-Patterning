@@ -5,7 +5,7 @@ import time
 import sys
 sys.path.append('..')
 
-from PDE.model.fixed_models.update_fitzhugh_nagumo import F as F_fhn
+from PDE.model.fixed_models.update_fhn import F as F_fhn
 from PDE.model.solver.semidiscrete_solver import PDE_solver
 from Common.model.spatial_operators import Ops
 from Common.utils import my_animate

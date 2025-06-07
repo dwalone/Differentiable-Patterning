@@ -4,6 +4,7 @@
 # -----------------------------------------------------------------------------
 import argparse, os, sys, time, functools
 import jax
+jax.config.update("jax_enable_x64", False)
 import jax.numpy as jnp
 import jax.random as jr
 import equinox as eqx
@@ -12,30 +13,67 @@ from einops import rearrange
 
 sys.path.append("..")                                    # repo root
 from Common.model.spatial_operators import Ops
-from PDE.model.fixed_models.update_schnakenberg import F as F_schnakenberg
+from PDE.model.fixed_models.update_fhn import F as F_fhn
 from PDE.model.solver.semidiscrete_solver import PDE_solver
 from NCA.model.NCA_model import NCA                      # same class used in training
 
 # -----------------------------------------------------------------------------
 # 1. Hyper-parameters (identical to training)
 # -----------------------------------------------------------------------------
-CHANNELS      = 8
+CHANNELS      = 16
 KERNEL_STR    = ["ID", "LAP", "GRAD"]
 FIRE_RATE     = 1.0
 PADDING       = "CIRCULAR"
-KERNEL_SCALE  = 1
 DX            = 1.0
-DT_MICRO      = 5e-3
+DT_MICRO      = 5e-5
 TIME_SAMPLING = 32      # NCA micro-steps between PDE snapshots
 NUM_INTERVALS = 8       # number of snapshot intervals
 SIZE          = 64
-BATCHES       = 1       # single trajectory, as requested
+BATCHES       = 2
 
-# Schnakenberg parameters (same as training)
-a, b, D = 0.2, 0.8, 50.0
-U_eq = a + b
-V_eq = b / (U_eq**2)
-noise_amp = 0.05
+# FHN parameters
+D_true    = 20         # slower inhibitor diffusion
+eps_v_true = 0.5       # stronger timescale separation
+a_v_true   = 1
+a_z_true   = -0.1         # zero offset → excitable pulses
+
+# domain and discretization
+dx = 1.0
+dt = 1e-2
+
+def make_spike_ic(key, B, H, W, N_clicks=5, sigma=1.5, amplitude=1.0):
+    """
+    Returns array [B,2,H,W] in float64 with N_clicks Gaussian bumps in channel 0.
+    Channel 1 is zero.
+    """
+    # 1) precompute Gaussian kernel in float64
+    radius = int(3 * sigma)
+    xs = jnp.arange(-radius, radius + 1, dtype=jnp.float64)
+    ys = xs
+    Xg, Yg = jnp.meshgrid(xs, ys, indexing='ij')
+    kernel = amplitude * jnp.exp(-(Xg**2 + Yg**2) / (2 * sigma**2))
+
+    # 2) init U,V in float64
+    U0 = jnp.zeros((B, H, W), dtype=jnp.float64)
+    V0 = jnp.zeros_like(U0)
+
+    # 3) get keys
+    keys = jr.split(key, B * N_clicks).reshape(B, N_clicks, 2)
+
+    # 4) scatter‐add bumps
+    for b in range(B):
+        for n in range(N_clicks):
+            subkey = keys[b, n]
+            k1, k2 = jr.split(subkey)
+            i = int(jr.randint(k1, (), radius, H - radius))
+            j = int(jr.randint(k2, (), radius, W - radius))
+            
+            i0, i1 = i - radius, i + radius + 1
+            j0, j1 = j - radius, j + radius + 1
+            U0 = U0.at[b, i0:i1, j0:j1].add(kernel)
+
+    # 5) stack u,v channels
+    return jnp.stack([U0, V0], axis=1)  # shape [B,2,H,W] dtype=float64
 
 # -----------------------------------------------------------------------------
 # 2. Command-line arguments
@@ -51,30 +89,43 @@ os.makedirs(args.outdir, exist_ok=True)
 # -----------------------------------------------------------------------------
 # 3. Build PDE RHS & solver – exactly as in training
 # -----------------------------------------------------------------------------
-op    = Ops(PADDING=PADDING, dx=DX, KERNEL_SCALE=3)
-f_rhs = F_schnakenberg(PADDING=PADDING, dx=DX, KERNEL_SCALE=1,
-                       a=a, b=b, D=D)
-v_rhs = eqx.filter_vmap(f_rhs, in_axes=(None, 0, None), out_axes=0)
-solver = PDE_solver(v_rhs, DT_MICRO)
+func  = F_fhn(
+    PADDING="CIRCULAR",
+    dx=dx,
+    D=D_true,
+    eps_v=eps_v_true,
+    a_v=a_v_true,
+    a_z=a_z_true
+)
+# wrap fhn so it handles batch axis
+vfunc = eqx.filter_vmap(func, in_axes=(None,0,None), out_axes=0)
+solver = PDE_solver(vfunc, dt)
 
 # -----------------------------------------------------------------------------
 # 4. Generate ground-truth trajectory
 # -----------------------------------------------------------------------------
-key = jr.PRNGKey(0)
+key = jr.PRNGKey(4)
 
-# initial condition: equilibrium + small uniform noise  (shape [B,C,H,W])
-key, k1 = jr.split(key)
-U0 = (U_eq + noise_amp * jr.normal(k1,  (BATCHES, 1, SIZE, SIZE)))
-key, k2 = jr.split(key)
-V0 = (V_eq + noise_amp * jr.normal(k2,  (BATCHES, 1, SIZE, SIZE)))
-x0 = jnp.concatenate([U0, V0], axis=1)                  # [B,2,H,W]
+# 3) IC: random clicks, already float64
+key, subkey = jr.split(key)
+x0 = make_spike_ic(
+    subkey,
+    B=BATCHES,
+    H=SIZE,
+    W=SIZE,
+    N_clicks=10,
+    sigma=1.0,
+    amplitude=1.0
+)   # [B,2,H,W] float64
 
-# Smooth the IC the same way as training (3× 3×3 mean filter)
-for _ in range(3):
+# 4) smooth in float64
+op = Ops(PADDING="CIRCULAR", dx=dx, KERNEL_SCALE=3)
+# op kernels are float64, x0 is float64 → no dtype mismatches
+for _ in range(2):
     x0 = jax.vmap(op.Average, in_axes=0, out_axes=0)(x0)
 
 # Integrate PDE
-ts = jnp.linspace(0, TIME_SAMPLING * NUM_INTERVALS, TIME_SAMPLING * NUM_INTERVALS)
+ts = jnp.linspace(0.0, TIME_SAMPLING * 8 * 0.1, TIME_SAMPLING * 8, dtype=jnp.float64)
 _, Y = solver(ts, x0)                                   # Y: [T,B,2,H,W]
 Y = rearrange(Y, "T B C X Y -> B T C X Y")              # [B,T,C,H,W]
 Y = Y[:, :, :1]                                         # keep U-channel only
@@ -92,9 +143,7 @@ dummy_nca = NCA(
     N_CHANNELS=CHANNELS,
     KERNEL_STR=KERNEL_STR,
     ACTIVATION=jax.nn.relu,
-    PADDING=PADDING,
     FIRE_RATE=FIRE_RATE,
-    KERNEL_SCALE=KERNEL_SCALE,
     key=key,
 )
 nca = eqx.tree_deserialise_leaves(args.model, dummy_nca)
