@@ -1,0 +1,159 @@
+#!/usr/bin/env python
+import jax
+import os
+import time
+import jax.random as jr
+import jax.numpy as jnp
+import equinox as eqx
+import optax
+from einops import rearrange
+
+import sys
+sys.path.append('..')
+
+from Common.model.spatial_operators import Ops
+from PDE.model.fixed_models.update_fhn import F as F_fhn
+from PDE.model.solver.semidiscrete_solver import PDE_solver
+from NCA.trainer.NCA_trainer import NCA_Trainer
+from NCA.trainer.data_augmenter_nca_from_pde_2_chemotaxis import DataAugmenter
+from NCA.model.NCA_DINCA import NCA_DINCA as NCA
+
+#--- Training hyperparameters
+ITERS         = 8000        # total training iterations
+CHANNELS      = 16           # NCA hidden channels
+SIZE          = 64          # spatial grid size
+BATCHES       = 2           # how many trajectories per batch
+TIME_SAMPLING = 32          # solver steps between recorded frames
+LEARN_RATE    = 5e-5        # base learning rate
+
+# ----------------------------------------------------------------------
+# 1) make_spike_ic (host‐only, float64 everywhere)
+# ----------------------------------------------------------------------
+def make_spike_ic(key, B, H, W, N_clicks=5, sigma=1.5, amplitude=1.0):
+    """
+    Returns array [B,2,H,W] in float64 with N_clicks Gaussian bumps in channel 0.
+    Channel 1 is zero.
+    """
+    # 1) precompute Gaussian kernel in float64
+    radius = int(3 * sigma)
+    xs = jnp.arange(-radius, radius + 1, dtype=jnp.float64)
+    ys = xs
+    Xg, Yg = jnp.meshgrid(xs, ys, indexing='ij')
+    kernel = amplitude * jnp.exp(-(Xg**2 + Yg**2) / (2 * sigma**2))
+
+    # 2) init U,V in float64
+    U0 = jnp.zeros((B, H, W), dtype=jnp.float64)
+    V0 = jnp.zeros_like(U0)
+
+    # 3) get keys
+    keys = jr.split(key, B * N_clicks).reshape(B, N_clicks, 2)
+
+    # 4) scatter‐add bumps
+    for b in range(B):
+        for n in range(N_clicks):
+            subkey = keys[b, n]
+            k1, k2 = jr.split(subkey)
+            i = int(jr.randint(k1, (), radius, H - radius))
+            j = int(jr.randint(k2, (), radius, W - radius))
+            
+            i0, i1 = i - radius, i + radius + 1
+            j0, j1 = j - radius, j + radius + 1
+            U0 = U0.at[b, i0:i1, j0:j1].add(kernel)
+
+    # 5) stack u,v channels
+    return jnp.stack([U0, V0], axis=1)  # shape [B,2,H,W] dtype=float64
+
+# ----------------------------------------------------------------------
+# 2) Build “true” FitzHugh–Nagumo trajectories
+# ----------------------------------------------------------------------
+key = jr.PRNGKey(0)
+
+# FHN parameters (must match PDE solver below)
+D_true    = 20         # slower inhibitor diffusion
+eps_v_true = 0.5       # stronger timescale separation
+a_v_true   = 1
+a_z_true   = -0.1         # zero offset → excitable pulses
+
+# domain and discretization
+dx = 1.0
+dt = 1e-2
+
+# 3) IC: random clicks, already float64
+key, subkey = jr.split(key)
+x0 = make_spike_ic(
+    subkey,
+    B=BATCHES,
+    H=SIZE,
+    W=SIZE,
+    N_clicks=8,
+    sigma=1.0,
+    amplitude=1.0
+)   # [B,2,H,W] float64
+
+# 4) smooth in float64
+op = Ops(PADDING="CIRCULAR", dx=dx, KERNEL_SCALE=3)
+# op kernels are float64, x0 is float64 → no dtype mismatches
+for _ in range(2):
+    x0 = jax.vmap(op.Average, in_axes=0, out_axes=0)(x0)
+
+# ----------------------------------------------------------------------
+# 5) define RHS and solver (vectorized over batch)
+# ----------------------------------------------------------------------
+func  = F_fhn(
+    PADDING="CIRCULAR",
+    dx=dx,
+    D=D_true,
+    eps_v=eps_v_true,
+    a_v=a_v_true,
+    a_z=a_z_true
+)
+# wrap fhn so it handles batch axis
+vfunc = eqx.filter_vmap(func, in_axes=(None,0,None), out_axes=0)
+solver = PDE_solver(vfunc, dt)
+
+# 6) integrate and collect snapshots
+ts = jnp.linspace(0.0, TIME_SAMPLING * 8 * 0.1, TIME_SAMPLING * 8, dtype=jnp.float64)
+T, Y = solver(ts=ts, y0=x0)  # Y: [T, B, 2, H, W] float64
+
+# 7) reshape & normalize, keep both channels
+Y = rearrange(Y, "T B C X Y -> B T C X Y")  # [B, T, 2, H, W]
+Y = Y[:, :, :1]                                 # drop V
+Y = (Y - Y.min()) / (Y.max() - Y.min())         # normalize [0,1]
+Y = Y[:, ::TIME_SAMPLING]                       # downsample in time
+
+# ----------------------------------------------------------------------
+# 9) build NCA & trainer
+# ----------------------------------------------------------------------
+nca = NCA(
+    N_CHANNELS=CHANNELS,
+    KERNEL_STR=["ID","LAP","GRAD"],
+    ACTIVATION=jax.nn.relu,
+    FIRE_RATE=1.0,
+    key=key
+)
+
+trainer = NCA_Trainer(
+    nca,
+    Y,
+    model_filename="demo/train_nca_to_pde_fhn_click",
+    DATA_AUGMENTER=DataAugmenter,
+    GRAD_LOSS=True
+)
+
+# optimizer
+schedule  = optax.exponential_decay(LEARN_RATE, transition_steps=ITERS, decay_rate=0.99)
+optimiser = optax.chain(optax.scale_by_param_block_norm(), optax.nadam(schedule))
+
+print("Saving to:", os.path.abspath("models/demo/train_nca_to_pde_fhn_click"))
+
+# 10) run training: still 32 micro‐steps per data‐frame
+trainer.train(
+    TIME_SAMPLING,
+    ITERS,
+    WARMUP=50,
+    optimiser=optimiser,
+    LOSS_FUNC_STR="euclidean",
+    LOOP_AUTODIFF="lax",
+    LOG_EVERY=50,
+    key=key
+)

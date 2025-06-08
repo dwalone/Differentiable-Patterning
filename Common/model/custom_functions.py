@@ -49,3 +49,31 @@ def set_layer_weights(shape,key,INIT_TYPE,INIT_SCALE):
         i = repeat(i,"i j -> i j () ()")
         r = jr.normal(key,shape)
         return INIT_SCALE*(a*i+(1-a)*r)
+
+def construct_polynomials_with_labels(X: jnp.ndarray, max_power: int, var_names=None, return_labels=True):
+    """
+    Returns all polynomial terms up to `max_power` over vector X,
+    along with symbolic labels (if `return_labels=True`).
+
+    If var_names is None, variables are named x0, x1, ...
+    """
+    n = X.shape[0]
+    terms = []
+    labels = []
+
+    # Default variable names
+    if var_names is None:
+        var_names = [f"x{i}" for i in range(n)]
+
+    for power in range(1, max_power + 1):
+        for combo in combinations_with_replacement(range(n), power):
+            indices = jnp.array(combo)
+            term = jnp.prod(X[indices])
+            terms.append(term)
+
+            if return_labels:
+                label_parts = [var_names[i] for i in combo]
+                label = "".join(label_parts)
+                labels.append(label)
+
+    return (jnp.array(terms), labels) if return_labels else jnp.array(terms)

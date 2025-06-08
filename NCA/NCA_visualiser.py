@@ -199,40 +199,36 @@ def plot_weight_kernel_boxplot_show(nca):
 		#figs.append(plot_to_image(figure))
 	return fig,ax
 
-def plot_weight_matrix_kernel_subplots(nca):
-	ws = nca.get_weights()
-	w_in = nca.layers[0].weight[:,:,0,0]
-	w_out= nca.layers[2].weight[:,:,0,0]
-	print(len(ws))
-	N_KERNELS = nca.N_FEATURES // nca.N_CHANNELS
-	K_STR = nca.KERNEL_STR.copy()
-	K_STR = sort_kstr(K_STR)
-	if "GRAD" in K_STR:
-		for i in range(len(K_STR)):
-			if K_STR[i]=="GRAD":
-				K_STR[i]="GRAD X"
-				K_STR.insert(i,"GRAD Y")
-	
-	#weights_split = []
-	#figs = []
-	fig,ax = plt.subplots(1,N_KERNELS + 1,sharey=True,figsize=(12,6))
-	for k in range(N_KERNELS):
-		#w_k = w_in[:,k::N_KERNELS]
-		w_k = w_in[:,k*nca.N_CHANNELS:(k+1)*nca.N_CHANNELS]
-		col_range = max(np.max(w_k),-np.min(w_k))
-		ax[k].imshow(w_k,cmap="seismic",vmax=col_range,vmin=-col_range)
-		ax[k].set_xlabel("Channel inputs")
-		ax[k].set_ylabel("Outputs")
-		ax[k].set_title(K_STR[k])
-		#plt.plot()
-		#figs.append(plot_to_image(figure))
-	
-	col_range = max(np.max(w_out),-np.min(w_out))
-	ax[-1].imshow(w_out.T,cmap="seismic",vmax=col_range,vmin=-col_range)
-	ax[-1].set_ylabel("Input from previous layer")
-	ax[-1].set_xlabel("NCA state increments")
-	ax[-1].set_title("Output layer")
-	return fig,ax
+def plot_weight_kernel_boxplot(nca):
+    w = nca.get_weights()[0]
+    w = np.squeeze(w)
+    N_KERNELS = nca.N_FEATURES // nca.N_CHANNELS
+    N_CHANNELS = nca.N_CHANNELS
+
+    # Use K_STR only for the first few visual labels, fallback to generic
+    K_STR = nca.KERNEL_STR.copy()
+    expanded_K_STR = []
+    for k in K_STR:
+        if k == "GRAD":
+            expanded_K_STR.extend(["GRAD X", "GRAD Y"])
+        else:
+            expanded_K_STR.append(k)
+    # Fill remaining with generic "Poly k"
+    while len(expanded_K_STR) < N_KERNELS:
+        expanded_K_STR.append(f"Poly {len(expanded_K_STR)}")
+
+    figs = []
+    for k in range(N_KERNELS):
+        w_k = w[:, k*N_CHANNELS:(k+1)*N_CHANNELS]
+        figure = plt.figure(figsize=(5, 5))
+        plt.boxplot(w_k)
+        plt.xlabel("Channels")
+        plt.ylabel("Weights")
+        plt.title(expanded_K_STR[k] + " kernel weights")
+        figs.append(plot_to_image(figure))
+
+    return figs
+
 
 
 

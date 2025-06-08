@@ -27,7 +27,7 @@ class NCA_Train_log(Train_log):
 		
 		w1,w2,b2 = nca.get_weights()
 		w1 = np.squeeze(w1)
-		w2 = np.squeeze(w1)
+		w2 = np.squeeze(w2)
 		b2 = np.squeeze(b2)		
 		self.log_histogram('Train/input_layer_weights',w1,step=i)
 		self.log_histogram('Train/output_layer_weights',w2,step=i)
@@ -38,28 +38,29 @@ class NCA_Train_log(Train_log):
 		kernel_weight_figs = plot_weight_kernel_boxplot(nca)
 		self.log_image("Train/input_weights_per_kernel",np.array(kernel_weight_figs)[:,0],step=i)
 
-	def log_model_outputs(self,
-					      x: PyTree[Float[Array, "N CHANNELS x y"], "B"], # type: ignore
-						  i):
-		
+	def log_model_outputs(self, x, i):
 		BATCHES = len(x)
 		for b in range(BATCHES):
-			self.log_image(
-				'Train/trajectory_batch_'+str(b),
-				self.normalise_images(rearrange(x[b][:,:3,...],"Batch Channel x y -> Batch x y Channel")),
-				step=i)
-			
+			img = rearrange(x[b][:, :3, ...], "Batch Channel x y -> Batch x y Channel")
+			if img.shape[-1] < 3:
+				pad = np.zeros((*img.shape[:-1], 3 - img.shape[-1]), dtype=img.dtype)
+				img = np.concatenate([img, pad], axis=-1)
+			img = self.normalise_images(img)
+			self.log_image(f'Train/trajectory_batch_{b}', img, step=i)
+
 		if x[0].shape[1] > 3:
-			b=0
-			hidden_channels = x[b][:,3:]
-			extra_zeros = (-hidden_channels.shape[1])%3
-			hidden_channels = np.pad(hidden_channels,((0,0),(0,extra_zeros),(0,0),(0,0)))
-			_cy,_cx = squarish(hidden_channels.shape[1]//3)
-			hidden_channels_r = rearrange(hidden_channels,"Batch (cx cy C) x y -> Batch (cx x) (cy y) C",C=3,cy=_cy,cx=_cx)
-			self.log_image(
-				f'Train/trajectory_batch_{b}_hidden_channels',
-				hidden_channels_r,
-				step=i)
+			b = 0
+			hidden_channels = x[b][:, 3:]
+			extra_zeros = (-hidden_channels.shape[1]) % 3
+			hidden_channels = np.pad(hidden_channels, ((0, 0), (0, extra_zeros), (0, 0), (0, 0)))
+			_cy, _cx = squarish(hidden_channels.shape[1] // 3)
+			hidden_channels_r = rearrange(
+				hidden_channels,
+				"Batch (cx cy C) x y -> Batch (cx x) (cy y) C",
+				C=3, cy=_cy, cx=_cx
+			)
+			self.log_image(f'Train/trajectory_batch_{b}_hidden_channels', hidden_channels_r, step=i)
+
 	
 	def tb_training_loop_log_sequence(self,losses,x,i,model,write_images=True,LOG_EVERY=10):
 		
@@ -89,8 +90,15 @@ class NCA_Train_log(Train_log):
 		print("Running final trained model for "+str(t)+" steps")
 		
 		for b in tqdm(range(BATCHES)):
-			T =nca.run(t,x[b][0],boundary_callback[b])
-			self.log_video("Evaluation/trajectory",T[:,:3],step=None)
+			T = nca.run(t, x[b][0], boundary_callback[b])  # [T, C, X, Y]
+
+			video = T[:, :3]  # Attempt to take first 3 channels
+			if video.shape[1] < 3:
+				pad = np.zeros((video.shape[0], 3 - video.shape[1], *video.shape[2:]), dtype=video.dtype)
+				video = np.concatenate([video, pad], axis=1)
+
+			self.log_video("Evaluation/trajectory", video, step=None)
+
 
 			if CHANNELS>4:
 				t_h = T[:,:,:,4:]
@@ -140,7 +148,7 @@ class mNCA_Train_log(NCA_Train_log):
 		for scale,W in enumerate(nca.get_weights()):
 			w1,w2,b2 = W
 			w1 = np.squeeze(w1)
-			w2 = np.squeeze(w1)
+			w2 = np.squeeze(w2)
 			b2 = np.squeeze(b2)		
 			self.log_histogram(f'Input layer weights, scale {scale}',w1,step=i)
 			self.log_histogram(f'Output layer weights, scale {scale}',w2,step=i)
