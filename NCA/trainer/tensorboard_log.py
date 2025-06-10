@@ -1,6 +1,7 @@
 from einops import rearrange
 from NCA.NCA_visualiser import plot_weight_matrices,plot_weight_kernel_boxplot
 import numpy as np
+import jax.numpy as jnp
 from Common.utils import squarish
 from tqdm import tqdm
 from jaxtyping import Float,Array,Key,PyTree
@@ -24,17 +25,21 @@ class NCA_Train_log(Train_log):
 			i : training step
 		"""
 		
-		
-		w1,w2,b2 = nca.get_weights()
+		weights = nca.get_weights()
+		if len(weights) == 3:                 # 2-layer NCA
+			w1, w2, b2 = weights
+		else:                                 # DINCA or any 1-layer net
+			w1, b2 = weights
+			w2 = None
 		w1 = np.squeeze(w1)
-		w2 = np.squeeze(w2)
-		b2 = np.squeeze(b2)		
+		b2 = np.squeeze(b2)
 		self.log_histogram('Train/input_layer_weights',w1,step=i)
-		self.log_histogram('Train/output_layer_weights',w2,step=i)
 		self.log_histogram('Train/output_layer_bias',b2,step=i)				
 		weight_matrix_figs = plot_weight_matrices(nca)
 		self.log_image("Train/weight_matrices",np.array(weight_matrix_figs)[:,0],step=i)
-				
+		if w2 is not None:                    # skip if it doesn't exist
+			w2 = np.squeeze(w1)
+			self.log_histogram("Train/output_layer_weights", w2, step=i)
 		kernel_weight_figs = plot_weight_kernel_boxplot(nca)
 		self.log_image("Train/input_weights_per_kernel",np.array(kernel_weight_figs)[:,0],step=i)
 
@@ -90,16 +95,11 @@ class NCA_Train_log(Train_log):
 		print("Running final trained model for "+str(t)+" steps")
 		
 		for b in tqdm(range(BATCHES)):
-			T = nca.run(t, x[b][0], boundary_callback[b])  # [T, C, X, Y]
-
-			video = T[:, :3]  # Attempt to take first 3 channels
-			if video.shape[1] < 3:
-				pad = np.zeros((video.shape[0], 3 - video.shape[1], *video.shape[2:]), dtype=video.dtype)
-				video = np.concatenate([video, pad], axis=1)
-
-			self.log_video("Evaluation/trajectory", video, step=None)
-
-
+			T =nca.run(t,x[b][0],boundary_callback[b])
+			# pad to 3 channels: [u, v, zeros]
+			zeros = jnp.zeros_like(T[:, :1, :, :])
+			uv3   = jnp.concatenate([T[:,0:1], T[:,1:2], zeros], axis=1)
+			self.log_video("Evaluation/trajectory_uv", uv3, step=None)
 			if CHANNELS>4:
 				t_h = T[:,:,:,4:]
 				extra_zeros = (-t_h.shape[1])%3

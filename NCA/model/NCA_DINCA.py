@@ -174,6 +174,7 @@ class NCA_DINCA(AbstractModel):
         # 5) stochastic update (same semantics as vanilla NCA)
         sigma = jax.random.bernoulli(key, p=self.FIRE_RATE, shape=dx.shape)
         x_new = x + sigma * dx
+        x_new = jnp.clip(x_new, 0.0, 1.0)
         return boundary_callback(x_new)
 
     # -------------------------------------------------- L1 helpers

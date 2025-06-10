@@ -11,7 +11,8 @@ import itertools
 
 class DataAugmenter(DataAugmenterAbstract):
    
-    def __init__(self,data_true,hidden_channels=0):
+    def __init__(self,data_true,hidden_channels=0, teacher_force_start=0.5, teacher_force_end=0.0,
+                 teacher_force_decay_steps=2000):
         """
         Class for handling data augmentation for NCA training. 
         data_init is called before training,
@@ -43,6 +44,9 @@ class DataAugmenter(DataAugmenterAbstract):
         self.data_true = data_true
         self.data_saved = data_true
         self.key = jax.random.PRNGKey(int(1000*time.time()))
+        self.tf_start = teacher_force_start
+        self.tf_end   = teacher_force_end
+        self.tf_N     = teacher_force_decay_steps
 
 
     def data_callback(self,x,y,i,key=None):
@@ -67,29 +71,36 @@ class DataAugmenter(DataAugmenterAbstract):
             Final states
 
         """
-
-        x_true,_ =self.split_x_y(1)
-                
-        x = jittable_callback_bit(x,x_true,self.OBS_CHANNELS)
-            
-        x = self.noise(x,0.001,key=self.key)
-        self.key = jax.random.fold_in(self.key,i)
-        #y = self.noise(y,0.01,key=jax.random.fold_in(key,2*i))
-        return x,y
-
+        tf_prob = jnp.clip(
+            self.tf_start - (i / self.tf_N) * (self.tf_start - self.tf_end),
+            self.tf_end, self.tf_start,
+        )
+        x_true, _ = self.split_x_y(1)
+        x = jittable_callback_bit(x, x_true, self.OBS_CHANNELS, i, tf_prob)
+        x = self.noise(x, 0.001, key=self.key)
+        self.key = jax.random.fold_in(self.key, i)
+        return x, y
+    
 @eqx.filter_jit
-def jittable_callback_bit(x, x_true, OBS_CHANNELS):
-    # 1) roll trajectory forward by one
-    propagate_xn = lambda a: a.at[1:].set(a[:-1])
-    x = jax.tree_util.tree_map(propagate_xn, x)
+def jittable_callback_bit(x, x_true, obs_channels, step, tf_prob):
+    # 1) shift trajectories one step forward
+    propagate = lambda a: a.at[1:].set(a[:-1])
+    x = jax.tree_util.tree_map(propagate, x)
 
-    # 2) restore the very first frame to ground truth
-    reset_x0 = lambda a, b: a.at[0].set(b[0])
-    x = jax.tree_util.tree_map(reset_x0, x, x_true)
+    # 2) choose which batches to teacher-force
+    key     = jax.random.PRNGKey(step)
+    tf_mask = jax.random.bernoulli(key, p=tf_prob,
+                                   shape=(len(x), 1, 1, 1, 1))
+    tf_mask = list(tf_mask)        # match the pytree structure of x
 
-    # 3) ***NEW: teacher-force EVERY batch, not just the evens***
-    x = jax.tree_util.tree_map(
-        lambda a, b: a.at[:, :OBS_CHANNELS].set(b[:, :OBS_CHANNELS]),
-        x, x_true
-    )
+    def maybe_reset(a, b, m):
+        m = m.squeeze()            # scalar bool
+        new0 = jnp.where(m,
+                         b[0, :obs_channels],
+                         a[0, :obs_channels])
+        return a.at[0, :obs_channels].set(new0)
+
+    x = jax.tree_util.tree_map(maybe_reset, x, x_true, tf_mask)
     return x
+
+

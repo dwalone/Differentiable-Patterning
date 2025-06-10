@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from typing import Sequence
 import jax
 import os
 import time
@@ -15,16 +16,20 @@ from Common.model.spatial_operators import Ops
 from PDE.model.fixed_models.update_fhn import F as F_fhn
 from PDE.model.solver.semidiscrete_solver import PDE_solver
 from NCA.trainer.NCA_trainer import NCA_Trainer
-from NCA.trainer.data_augmenter_nca_from_pde_2_chemotaxis import DataAugmenter
+from NCA.trainer.data_augmenter_nca_from_pde_2_dinca import DataAugmenter
 from NCA.model.NCA_DINCA import NCA_DINCA as NCA
+from demo.dinca_read_out import read_out
+from demo.optimisers import masked_optimiser, normal_optimiser, warmup_optimiser
 
 #--- Training hyperparameters
-ITERS         = 8000        # total training iterations
-CHANNELS      = 16           # NCA hidden channels
+ITERS         = 4000        # total training iterations
+CHANNELS      = 2           # NCA hidden channels
 SIZE          = 64          # spatial grid size
-BATCHES       = 2           # how many trajectories per batch
+BATCHES       = 8           # how many trajectories per batch
 TIME_SAMPLING = 32          # solver steps between recorded frames
 LEARN_RATE    = 5e-5        # base learning rate
+DT            = 1e-2     # time step used by the PDE solver
+OPTIMISER = 'masked'
 
 # ----------------------------------------------------------------------
 # 1) make_spike_ic (host‐only, float64 everywhere)
@@ -76,7 +81,6 @@ a_z_true   = -0.1         # zero offset → excitable pulses
 
 # domain and discretization
 dx = 1.0
-dt = 1e-2
 
 # 3) IC: random clicks, already float64
 key, subkey = jr.split(key)
@@ -109,25 +113,29 @@ func  = F_fhn(
 )
 # wrap fhn so it handles batch axis
 vfunc = eqx.filter_vmap(func, in_axes=(None,0,None), out_axes=0)
-solver = PDE_solver(vfunc, dt)
+solver = PDE_solver(vfunc, DT)
 
 # 6) integrate and collect snapshots
 ts = jnp.linspace(0.0, TIME_SAMPLING * 8 * 0.1, TIME_SAMPLING * 8, dtype=jnp.float64)
-T, Y = solver(ts=ts, y0=x0)  # Y: [T, B, 2, H, W] float64
+T, Y_phys = solver(ts=ts, y0=x0)  # Y: [T, B, 2, H, W] float64
 
 # 7) reshape & normalize, keep both channels
-Y = rearrange(Y, "T B C X Y -> B T C X Y")  # [B, T, 2, H, W]
-Y = Y[:, :, :1]                                 # drop V
-Y = (Y - Y.min()) / (Y.max() - Y.min())         # normalize [0,1]
+Y = rearrange(Y_phys, "T B C X Y -> B T C X Y")  # [B, T, 2, H, W]
+#Y = Y[:, :, :1]                                 # drop V
+mins = Y.min(axis=(0, 1, 3, 4), keepdims=True)  # shape (1, 1, C, 1, 1)
+ptps = Y.ptp(axis=(0, 1, 3, 4), keepdims=True)  # shape (1, 1, C, 1, 1)
+Y = (Y - mins) / ptps
 Y = Y[:, ::TIME_SAMPLING]                       # downsample in time
+
+range_uv = ptps.squeeze()  # shape (C,)
+range_u, range_v = float(range_uv[0]), float(range_uv[1])
 
 # ----------------------------------------------------------------------
 # 9) build NCA & trainer
 # ----------------------------------------------------------------------
 nca = NCA(
     N_CHANNELS=CHANNELS,
-    KERNEL_STR=["ID","LAP","GRAD"],
-    ACTIVATION=jax.nn.relu,
+    KERNEL_STR=["LAP"],
     FIRE_RATE=1.0,
     key=key
 )
@@ -137,12 +145,21 @@ trainer = NCA_Trainer(
     Y,
     model_filename="demo/train_nca_to_pde_fhn_click",
     DATA_AUGMENTER=DataAugmenter,
-    GRAD_LOSS=True
+    GRAD_LOSS=True,
+    OBS_CHANNELS=2
 )
 
-# optimizer
-schedule  = optax.exponential_decay(LEARN_RATE, transition_steps=ITERS, decay_rate=0.99)
-optimiser = optax.chain(optax.scale_by_param_block_norm(), optax.nadam(schedule))
+# Diffusion: ∇²(ch0) = 4, ∇²(ch1) = 5
+keep_diff = [(0, 4), (1, 5)] # Δu gets ∇²u, Δv gets ∇²v
+# Reaction: define what each Δchannel can use
+keep_reac = {
+    0: ['u', 'v', 'uuu'],   # only these on Δu
+    1: ['u', 'v']    # only these on Δv
+}
+bias_mask = [False, True]
+#optimiser = masked_optimiser(ITERS, LEARN_RATE, nca, keep_diff, keep_reac, bias_mask)
+#optimiser = normal_optimiser(ITERS, LEARN_RATE)
+optimiser = warmup_optimiser(ITERS, LEARN_RATE)
 
 print("Saving to:", os.path.abspath("models/demo/train_nca_to_pde_fhn_click"))
 
@@ -152,8 +169,11 @@ trainer.train(
     ITERS,
     WARMUP=50,
     optimiser=optimiser,
-    LOSS_FUNC_STR="euclidean",
+    LOSS_FUNC_STR="l1",
     LOOP_AUTODIFF="lax",
     LOG_EVERY=50,
-    key=key
+    key=key,
+    SPARSE_PRUNING=True
 )
+
+read_out(trainer, range_u, range_v, DT)

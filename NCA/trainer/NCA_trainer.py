@@ -382,7 +382,7 @@ class NCA_Trainer(object):
 				
 				loss_key = key_pytree_gen(key, (len(x),))
 				losses = v_loss_func(x, y, loss_key)
-				mean_loss = jnp.mean(losses)+STATE_REGULARISER*(jnp.mean(reg_log)/t)+BOUNDARY_REGULARISER*(jnp.mean(boundary_reg_log)/t)+nca.regularisation_term()
+				mean_loss = jnp.mean(losses)+STATE_REGULARISER*(jnp.mean(reg_log)/t)+BOUNDARY_REGULARISER*(jnp.mean(boundary_reg_log)/t)
 				return mean_loss,(x,losses)
 			
 			nca_diff,nca_static = nca.partition()
@@ -441,7 +441,7 @@ class NCA_Trainer(object):
 				
 				if i>WARMUP:
 
-					ws,_ = nca.get_weights()
+					ws = nca.get_weights()
 					sparsity_distribution = partial(jaxpruner.sparsity_distributions.uniform, sparsity=SPARSITY[i])
 					pruner = jaxpruner.MagnitudePruning(
 						sparsity_distribution_fn=sparsity_distribution,
@@ -452,6 +452,7 @@ class NCA_Trainer(object):
 			
 			if self.IS_LOGGING:
 				self.LOGGER.tb_training_loop_log_sequence(losses, x_new, i, nca,write_images=WRITE_IMAGES,LOG_EVERY=LOG_EVERY)
+				self.LOGGER.log_scalar("Train/total_loss", float(mean_loss), step=i)
 			
 			if jnp.isnan(mean_loss):
 				error = 1
