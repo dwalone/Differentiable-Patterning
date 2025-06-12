@@ -11,7 +11,7 @@ import itertools
 
 class DataAugmenter(DataAugmenterAbstract):
    
-    def __init__(self,data_true,hidden_channels=0, teacher_force_start=0.5, teacher_force_end=0.0,
+    def __init__(self,data_true,hidden_channels=0, teacher_force_start=0.5, teacher_force_end=0.05,
                  teacher_force_decay_steps=2000):
         """
         Class for handling data augmentation for NCA training. 
@@ -71,15 +71,38 @@ class DataAugmenter(DataAugmenterAbstract):
             Final states
 
         """
+        # tf_prob = jnp.clip(
+        #     self.tf_start - (i / self.tf_N) * (self.tf_start - self.tf_end),
+        #     self.tf_end, self.tf_start,
+        # )
+        # x_true, _ = self.split_x_y(1)
+        # x = jittable_callback_bit(x, x_true, self.OBS_CHANNELS, i, tf_prob)
+        # x = self.noise(x, 0.001, key=self.key)
+        # self.key = jax.random.fold_in(self.key, i)
+        # return x, y
+
+        # ---------- PATCH 4: random roll-out horizons --------------------------
+        step_ranges = [(5, 10), (15, 25), (30, 40)]   # like the reference code
+        idx        = (i // 400) % len(step_ranges)    # cycle every 400 iters
+        lo, hi     = step_ranges[idx]
+        n_steps    = jr.randint(self.key, (), lo, hi + 1)
+
+        # shift trajectories by a random number of steps
+        propagate = lambda a: a.at[n_steps:].set(a[:-n_steps])
+        x = jax.tree_util.tree_map(propagate, x)
+
         tf_prob = jnp.clip(
             self.tf_start - (i / self.tf_N) * (self.tf_start - self.tf_end),
             self.tf_end, self.tf_start,
         )
         x_true, _ = self.split_x_y(1)
         x = jittable_callback_bit(x, x_true, self.OBS_CHANNELS, i, tf_prob)
+
+        # tiny input noise (kept from your original code)
         x = self.noise(x, 0.001, key=self.key)
         self.key = jax.random.fold_in(self.key, i)
         return x, y
+        # ----------------------------------------------------------------------
     
 @eqx.filter_jit
 def jittable_callback_bit(x, x_true, obs_channels, step, tf_prob):

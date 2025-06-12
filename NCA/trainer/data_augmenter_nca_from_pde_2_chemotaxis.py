@@ -93,3 +93,17 @@ def jittable_callback_bit(x, x_true, OBS_CHANNELS):
         x, x_true
     )
     return x
+
+# @eqx.filter_jit
+# def jittable_callback_bit(x,x_true,OBS_CHANNELS):
+                
+#     propagate_xn = lambda x:x.at[1:].set(x[:-1])
+#     reset_x0 = lambda x,x_true:x.at[0].set(x_true[0])
+    
+#     x = jax.tree_util.tree_map(propagate_xn,x) # Set initial condition at each X[n] at next iteration to be final state from X[n-1] of this iteration
+#     x = jax.tree_util.tree_map(reset_x0,x,x_true) # Keep first initial x correct
+    
+    
+#     for b in range(len(x)):
+#         x[b] = x[b].at[:,:OBS_CHANNELS].set(x_true[b][:,:OBS_CHANNELS]) # Set every other batch of intermediate initial conditions to correct initial conditions
+#     return x

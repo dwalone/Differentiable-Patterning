@@ -34,7 +34,7 @@ from Common.model.spatial_operators import Ops
 from PDE.model.fixed_models.update_schnakenberg import F as F_schnakenberg
 from PDE.model.solver.semidiscrete_solver import PDE_solver
 from NCA.trainer.NCA_trainer import NCA_Trainer
-from NCA.trainer.data_augmenter_nca_from_pde_2_dinca import DataAugmenter
+from NCA.trainer.data_augmenter_nca_from_pde_2_chemotaxis import DataAugmenter
 from NCA.model.NCA_DINCA import NCA_DINCA as NCA
 from demo.dinca_read_out import read_out
 from demo.optimisers import masked_optimiser, normal_optimiser, warmup_optimiser
@@ -45,9 +45,8 @@ CHANNELS      = 2        # NCA channels (u, v)
 SIZE          = 64
 BATCHES       = 10        # trajectories per batch
 TIME_SAMPLING = 32       # frames between snapshots
-LEARN_RATE    = 1e-4
+LEARN_RATE    = 1e-5
 DT            = 5e-3     # time step used by the PDE solver
-OPTIMISER = 'masked'
 
 # -------------------- build a “true” Schnakenberg run ----------------
 key = jr.PRNGKey(0)
@@ -102,8 +101,8 @@ keep_reac = {
 }
 bias_mask = [True, True]
 
-optimiser = masked_optimiser(ITERS, LEARN_RATE, nca, keep_diff, keep_reac, bias_mask)
-#optimiser = normal_optimiser(ITERS, LEARN_RATE)
+#optimiser = masked_optimiser(ITERS, LEARN_RATE, nca, keep_diff, keep_reac, bias_mask)
+optimiser = normal_optimiser(ITERS, LEARN_RATE, 0.99)
 #optimiser = warmup_optimiser(ITERS, LEARN_RATE)
 print(os.path.abspath("models/demo/train_nca_to_pde_schnakenberg"))
 # ------------- curriculum parameters -----------------
@@ -122,7 +121,18 @@ print(os.path.abspath("models/demo/train_nca_to_pde_schnakenberg"))
 #         key=jr.fold_in(key, phase),
 #     )
 
-trainer.train(TIME_SAMPLING, ITERS, WARMUP=50, optimiser=optimiser,
-              LOSS_FUNC_STR="euclidean", LOOP_AUTODIFF="lax", LOG_EVERY=50, key=key, SPARSE_PRUNING=True)
+# 10) run training: still 32 micro‐steps per data‐frame
+trainer.train(
+    TIME_SAMPLING,
+    ITERS,
+    WARMUP=50,
+    optimiser=optimiser,
+    LOSS_FUNC_STR="l1",
+    LOOP_AUTODIFF="lax",
+    LOG_EVERY=50,
+    key=key,
+    SPARSE_PRUNING=True,
+    TARGET_SPARSITY=0.5
+)
 
 read_out(trainer, range_u, range_v, DT)

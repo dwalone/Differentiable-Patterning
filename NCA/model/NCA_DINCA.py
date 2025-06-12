@@ -63,7 +63,7 @@ class NCA_DINCA(AbstractModel):
             "GRAD",        # indicates Sobel‑X/Y are present
             "LAP",         # indicates Laplacian is present
         ],  # <- add this
-        L1_COEFF: float = 0.0,
+        L1_COEFF: float = 1e-2,
         reaction_labels: list = []
     ):
         """Parameters mirror the original ``NCA`` constructor so that the
@@ -114,23 +114,66 @@ class NCA_DINCA(AbstractModel):
         self.N_FEATURES = _perception_channels + self._REACTION_FEATURES
 
         # ------------------------------------------------ linear update rule
+        # match PyTorch DINCA: single 1×1 conv, bias=0, Xavier‐uniform init
+        fan_in, fan_out = self.N_FEATURES, self.N_CHANNELS
+        bound = jnp.sqrt(6.0 / (fan_in + fan_out))
         key_w, key_b = jax.random.split(key, 2)
+        # sample Xavier‐uniform weights
+        w_init = jax.random.uniform(key_w, (fan_out, fan_in, 1, 1), minval=-bound, maxval=bound)
+        init_factor = 0.1
+        w_init *= init_factor
+
+        # zero‐init biases
+        b_init = jnp.zeros((fan_out, 1, 1))
+        # build conv and inject
         linear = eqx.nn.Conv2d(
-            in_channels=self.N_FEATURES,
-            out_channels=self.N_CHANNELS,
+            in_channels=fan_in,
+            out_channels=fan_out,
             kernel_size=1,
             use_bias=True,
             key=key_w,
         )
-
-        # initialise weights ≈ 0 so early training is stable
-        w_zeros = jnp.zeros((self.N_CHANNELS, self.N_FEATURES, 1, 1))
-        b_zeros = jnp.zeros((self.N_CHANNELS, 1, 1))
-        linear = eqx.tree_at(lambda l: l.weight, linear, w_zeros)
-        linear = eqx.tree_at(lambda l: l.bias,   linear, b_zeros)
-
-        # store in a *list* so APIs relying on ``layers`` do not crash
+        linear = eqx.tree_at(lambda l: l.weight, linear, w_init)
+        linear = eqx.tree_at(lambda l: l.bias,   linear, b_init)
+        # keep the single‐element list so all logging / get_weights etc. works unchanged
         self.layers = [linear]
+
+        #------------------------------------------------ linear update rule
+
+        # key_w, key_b = jax.random.split(key, 2)
+
+        # linear = eqx.nn.Conv2d(
+
+        #     in_channels=self.N_FEATURES,
+
+        #     out_channels=self.N_CHANNELS,
+
+        #     kernel_size=1,
+
+        #     use_bias=True,
+
+        #     key=key_w,
+
+        # )
+
+
+
+        # # initialise weights ≈ 0 so early training is stable
+
+        # w_zeros = jnp.zeros((self.N_CHANNELS, self.N_FEATURES, 1, 1))
+
+        # b_zeros = jnp.zeros((self.N_CHANNELS, 1, 1))
+
+        # linear = eqx.tree_at(lambda l: l.weight, linear, w_zeros)
+
+        # linear = eqx.tree_at(lambda l: l.bias,   linear, b_zeros)
+
+
+
+        # # store in a *list* so APIs relying on ``layers`` do not crash
+
+        # self.layers = [linear]
+
 
     # ------------------------------------------------------------------ utils
     @staticmethod
@@ -177,28 +220,6 @@ class NCA_DINCA(AbstractModel):
         x_new = jnp.clip(x_new, 0.0, 1.0)
         return boundary_callback(x_new)
 
-    # -------------------------------------------------- L1 helpers
-    def l1_loss(self, mode: str = "poly") -> Float[Array, ""]:
-        """`∑ |w|` over selected connections.
-
-        * ``mode='poly'`` (default) → only the **reaction** part of the
-          kernel (i.e. columns corresponding to polynomial features) –
-          what the DINCA paper penalises.
-        * ``mode='all'`` → entire weight tensor.
-        """
-        w = self.layers[0].weight  # (C_out, C_in, 1, 1)
-        if mode == "poly" and hasattr(self, "_REACTION_FEATURES"):
-            w = w[:, -self._REACTION_FEATURES :, ...]
-        return jnp.sum(jnp.abs(w))
-
-    def regularisation_term(self) -> Float[Array, ""]:
-        """Return `λ * ∑|w|` ready to be *added to the loss*.
-
-        If ``L1_COEFF==0`` this returns *zero* so the caller doesn’t need
-        to branch.
-        """
-        return self.L1_COEFF * self.l1_loss("poly") if self.L1_COEFF else 0.0
-
     # ---------------------------------------------------------------- get/set
     def get_config(self):
         """Mirror signature of vanilla ``get_config`` so logs work."""
@@ -217,30 +238,21 @@ class NCA_DINCA(AbstractModel):
         vanilla NCA.  Extra weights (if provided) are silently ignored so
         that scripts expecting three tensors do not crash.
         """
-        if len(weights) == 2:  # (w,b)
+        if len(weights) == 2:
             w, b = weights
         elif len(weights) >= 3:
-            # keep backwards‑compatibility – ignore hidden‑layer weights
             _, w, b = weights[:3]
-        else:
-            raise ValueError("Weights list must have length 2 or 3+")
-
+        # Directly set without reshaping
         self.layers[0] = eqx.tree_at(lambda l: l.weight, self.layers[0], w)
-        self.layers[0] = eqx.tree_at(lambda l: l.bias,   self.layers[0], b)
+        self.layers[0] = eqx.tree_at(lambda l: l.bias, self.layers[0], b)
 
     def get_weights(self):
         """Returns list of weights in (dummy_w0, w1, b1) format for logging compatibility."""
         diff, _ = self.partition()
         ws, _ = jax.tree_util.tree_flatten(diff)
-
-        # Filter out weights for the linear layer only
-        if len(ws) < 2:
-            raise ValueError("Expected at least 2 trainable parameters (weight and bias).")
-
-        w1 = jnp.squeeze(ws[0])
-        b1 = jnp.squeeze(ws[1])
-        dummy_w0 = jnp.zeros_like(w1)  # placeholder for hidden layer weight
-
+        w1 = ws[0]  # Keep 4D shape (out, in, 1, 1)
+        b1 = ws[1]  # Keep 1D shape (out,)
+        dummy_w0 = jnp.zeros_like(w1)  # Preserve shape
         return [dummy_w0, w1, b1]
 
     def run(self,
@@ -257,6 +269,13 @@ class NCA_DINCA(AbstractModel):
             trajectory.append(x)
         return jnp.array(trajectory)
 
+    # ---------- PATCH 2: L1 helper ---------------------------------------
+    def l1_output_weight(self):
+        """Mean |w| of the 1×1 kernel (for regularisation)."""
+        return jnp.mean(jnp.concatenate([
+            jnp.abs(self.layers[0].weight).ravel(),
+            jnp.abs(self.layers[0].bias).ravel()
+        ]))
 
+    # --------------------------------------------------------------------
 
-    # ``partition`` is inherited from AbstractModel and works unchanged.

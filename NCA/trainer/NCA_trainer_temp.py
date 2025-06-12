@@ -307,6 +307,8 @@ class NCA_Trainer(object):
 			self._loss_func = loss.l1
 		elif LOSS_FUNC_STR=="vgg":
 			self._loss_func = loss.vgg
+		elif LOSS_FUNC_STR=="huber":
+			self._loss_func = loss.huber
 		elif LOSS_FUNC_STR=="euclidean":
 			self._loss_func = loss.euclidean
 		elif LOSS_FUNC_STR=="spectral":
@@ -317,8 +319,6 @@ class NCA_Trainer(object):
 			#def _loss_func(self,x,y,dummy_key):
 			#	return loss.random_sampled_euclidean(x,y,key)
 			self._loss_func = lambda x,y,dummy_key:loss.random_sampled_euclidean(x,y,key=key)
-		elif LOSS_FUNC_STR=="huber":
-			self._loss_func = loss.huber
 
 
 
@@ -386,8 +386,10 @@ class NCA_Trainer(object):
 				losses = v_loss_func(x, y, loss_key)
 				mean_loss = jnp.mean(losses)+STATE_REGULARISER*(jnp.mean(reg_log)/t)+BOUNDARY_REGULARISER*(jnp.mean(boundary_reg_log)/t)
 				#---------- PATCH 2 (cont.)
-				lam = getattr(_nca, "L1_COEFF", 1e-2)          # reads from the live copy
+				lam = getattr(_nca, "L1_COEFF", 1)          # reads from the live copy
 				mean_loss = mean_loss + lam * _nca.l1_output_weight()
+
+				# -------------------------------------------------------------------------
 				return mean_loss,(x,losses)
 			
 			nca_diff,nca_static = nca.partition()
@@ -426,6 +428,14 @@ class NCA_Trainer(object):
 		error_at = 0
 		SPARSITY = jnp.concat((jnp.zeros(WARMUP),jnp.linspace(0,TARGET_SPARSITY,iters-WARMUP)))
 
+		# ---------- PATCH 1: scheduled pruning ----------
+		PRUNE_ITERS   = [400, 800, 1200]          # ← milestones you actually want
+		PRUNE_TARGETS = {400: 0.20,
+						800: 0.35,
+						1200: TARGET_SPARSITY}    # final sparsity
+		current_mask  = None                      # will store the binary mask
+		# ----------------------------------------------
+
 		pbar = tqdm(range(iters))
 		#--- Do training run ---
 		for i in pbar:
@@ -442,17 +452,27 @@ class NCA_Trainer(object):
 
 			pbar.set_postfix({'loss': mean_loss,'best loss': best_loss,'loss diff':loss_diff})
 
-			if SPARSE_PRUNING:
-				
-				if i>WARMUP:
+			# ---------- PATCH 1 (cont.)
+			if SPARSE_PRUNING and i in PRUNE_ITERS:
+				# one-shot magnitude pruning -------------------------------------------
+				target  = PRUNE_TARGETS[i]
+				ws      = nca.get_weights()
+				pruner  = jaxpruner.MagnitudePruning(
+					sparsity_distribution_fn=partial(
+						jaxpruner.sparsity_distributions.uniform,
+						sparsity=target
+					),
+					skip_gradients=True
+				)
+				ws, current_mask = pruner.instant_sparsify(ws)  # ← keep the mask
+				nca.set_weights(ws)
+			# always re-apply the same mask so zeros stay zero --------------------------
+			if current_mask is not None:
+				ws = nca.get_weights()
+				ws[1] = ws[1] * current_mask[1]   # zero the pruned weights
+				nca.set_weights(ws)
+			# --------------------------------------------------------------------------
 
-					ws = nca.get_weights()
-					sparsity_distribution = partial(jaxpruner.sparsity_distributions.uniform, sparsity=SPARSITY[i])
-					pruner = jaxpruner.MagnitudePruning(
-						sparsity_distribution_fn=sparsity_distribution,
-						skip_gradients=True)
-					ws = pruner.instant_sparsify(ws)[0]
-					nca.set_weights(ws)
 
 			
 			if self.IS_LOGGING:

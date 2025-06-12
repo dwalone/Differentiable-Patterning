@@ -2,6 +2,7 @@ from typing import Sequence
 import optax
 import jax
 import jax.numpy as jnp
+import equinox as eqx
 
 optimiser = None
 # -------------------------------------------------------------------------
@@ -72,6 +73,16 @@ def masked_optimiser(iters, lr, nca, keep_diff, keep_reac, bias_mask):
                 return jnp.ones_like(param, dtype=bool)
         return jax.tree_util.tree_map(mask_fn, params)
     tree_mask = make_tree_mask(nca_diff)
+
+    # --- ZERO-OUT ALL FROZEN PARAMETERS ON THE MODEL ---
+    # conv weights: shape (C, F, 1, 1), mask has shape (C, F)
+    w = nca.layers[0].weight * mask[:, :, None, None]
+    nca.layers[0] = eqx.tree_at(lambda m: m.weight, nca.layers[0], w)
+    # conv biases: shape (C, 1, 1), bias_mask was already expanded
+    b = nca.layers[0].bias * bias_mask
+    nca.layers[0] = eqx.tree_at(lambda m: m.bias,   nca.layers[0], b)
+    # — now every weight/bias outside your keep_* lists is zeroed and will stay frozen —
+
     # Custom gradient‐masking transform
     def zero_out_updates(updates, state, params=None):
         masked = jax.tree_util.tree_map(lambda g, m: g * m, updates, tree_mask)
@@ -81,9 +92,13 @@ def masked_optimiser(iters, lr, nca, keep_diff, keep_reac, bias_mask):
         update=zero_out_updates
     )
     schedule     = optax.exponential_decay(lr, transition_steps=iters, decay_rate=0.99)
-    base_optim   = optax.adam(schedule)
+    base_optim = optax.chain(
+        optax.scale_by_param_block_norm(),
+        optax.nadam(learning_rate=schedule)
+    )
+
     optimiser = optax.chain(
-        optax.clip_by_global_norm(1.0),
+        #optax.clip_by_global_norm(1.0),
         base_optim,
         masking
     )
@@ -94,8 +109,8 @@ def masked_optimiser(iters, lr, nca, keep_diff, keep_reac, bias_mask):
 # -------------------------------------------------------------------------
 # --------------------------- Normal Optimiser ----------------------------
 # -------------------------------------------------------------------------
-def normal_optimiser(iters, lr):
-    schedule  = optax.exponential_decay(lr, transition_steps=iters, decay_rate=0.99)
+def normal_optimiser(iters, lr, dr):
+    schedule  = optax.exponential_decay(lr, transition_steps=iters, decay_rate=dr)
     optimiser = optax.chain(optax.scale_by_param_block_norm(), optax.nadam(schedule))
     return optimiser
 # -------------------------------------------------------------------------
@@ -104,12 +119,11 @@ def normal_optimiser(iters, lr):
 # -------------------------------------------------------------------------
 # --------------------------- Warmup Optimiser ----------------------------
 # -------------------------------------------------------------------------
-def warmup_optimiser(iters, lr, warmup_steps=1000):
-    warmup_steps = 1000
+def warmup_optimiser(iters, lr, warmup_steps=400):
     peak_lr      = lr
     decay_steps  = iters - warmup_steps
     warmup = optax.linear_schedule(
-        init_value=1e-6,      # start very small
+        init_value=1e-7,      # start very small
         end_value=peak_lr,
         transition_steps=warmup_steps
     )

@@ -25,11 +25,10 @@ from demo.optimisers import masked_optimiser, normal_optimiser, warmup_optimiser
 ITERS         = 4000        # total training iterations
 CHANNELS      = 2           # NCA hidden channels
 SIZE          = 64          # spatial grid size
-BATCHES       = 8           # how many trajectories per batch
+BATCHES       = 10           # how many trajectories per batch
 TIME_SAMPLING = 32          # solver steps between recorded frames
-LEARN_RATE    = 5e-5        # base learning rate
+LEARN_RATE    = 1e-3        # base learning rate
 DT            = 1e-2     # time step used by the PDE solver
-OPTIMISER = 'masked'
 
 # ----------------------------------------------------------------------
 # 1) make_spike_ic (host‐only, float64 everywhere)
@@ -135,8 +134,8 @@ range_u, range_v = float(range_uv[0]), float(range_uv[1])
 # ----------------------------------------------------------------------
 nca = NCA(
     N_CHANNELS=CHANNELS,
-    KERNEL_STR=["LAP"],
-    FIRE_RATE=1.0,
+    KERNEL_STR=["ID", "LAP", "GRAD"],
+    FIRE_RATE=0.5,
     key=key
 )
 
@@ -145,7 +144,7 @@ trainer = NCA_Trainer(
     Y,
     model_filename="demo/train_nca_to_pde_fhn_click",
     DATA_AUGMENTER=DataAugmenter,
-    GRAD_LOSS=True,
+    GRAD_LOSS=False,
     OBS_CHANNELS=2
 )
 
@@ -157,9 +156,9 @@ keep_reac = {
     1: ['u', 'v']    # only these on Δv
 }
 bias_mask = [False, True]
-#optimiser = masked_optimiser(ITERS, LEARN_RATE, nca, keep_diff, keep_reac, bias_mask)
-#optimiser = normal_optimiser(ITERS, LEARN_RATE)
-optimiser = warmup_optimiser(ITERS, LEARN_RATE)
+optimiser = masked_optimiser(ITERS, LEARN_RATE, nca, keep_diff, keep_reac, bias_mask)
+#optimiser = normal_optimiser(ITERS, LEARN_RATE, 0.99)
+#optimiser = warmup_optimiser(ITERS, LEARN_RATE)
 
 print("Saving to:", os.path.abspath("models/demo/train_nca_to_pde_fhn_click"))
 
@@ -173,7 +172,8 @@ trainer.train(
     LOOP_AUTODIFF="lax",
     LOG_EVERY=50,
     key=key,
-    SPARSE_PRUNING=True
+    SPARSE_PRUNING=True,
+    TARGET_SPARSITY=0.5
 )
 
 read_out(trainer, range_u, range_v, DT)

@@ -42,6 +42,11 @@ class NCA_Train_log(Train_log):
 			self.log_histogram("Train/output_layer_weights", w2, step=i)
 		kernel_weight_figs = plot_weight_kernel_boxplot(nca)
 		self.log_image("Train/input_weights_per_kernel",np.array(kernel_weight_figs)[:,0],step=i)
+		if i%50==0:
+			ws = nca.get_weights()
+			for i,w in enumerate(ws):
+				w = np.squeeze(w)
+				print(np.asarray(np.squeeze(w)))
 
 	def log_model_outputs(self, x, i):
 		BATCHES = len(x)

@@ -29,7 +29,7 @@ diffusion_weights = {
     'dx_ch0_ch1': +0.00000e+00,
     'dy_ch0_ch0': +0.00000e+00,
     'dy_ch0_ch1': +0.00000e+00,
-    'lap_ch0_ch0': +8.01948e-01,
+    'lap_ch0_ch0': +4.16885e-01,
     'lap_ch0_ch1': +0.00000e+00,
     # ΔChannel 1
     'dx_ch1_ch0': +0.00000e+00,
@@ -37,25 +37,25 @@ diffusion_weights = {
     'dy_ch1_ch0': +0.00000e+00,
     'dy_ch1_ch1': +0.00000e+00,
     'lap_ch1_ch0': +0.00000e+00,
-    'lap_ch1_ch1': +3.33844e+00,
+    'lap_ch1_ch1': -5.33304e-02,
 }
 
 
 # === REACTION TERMS (physical units) ===
 reaction_weights = {
     # ΔChannel 0
-    'u_ch0': +7.81504e-01,
-    'v_ch0': -1.10058e-01,
+    'u_ch0': +5.38385e-01,
+    'v_ch0': +1.45873e-01,
     'uu_ch0': +0.00000e+00,
     'uv_ch0': +0.00000e+00,
     'vv_ch0': +0.00000e+00,
-    'uuu_ch0': -1.04791e-01,
+    'uuu_ch0': +1.74262e-02,
     'uuv_ch0': +0.00000e+00,
     'uvv_ch0': +0.00000e+00,
     'vvv_ch0': +0.00000e+00,
     # ΔChannel 1
-    'u_ch1': +5.17809e-02,
-    'v_ch1': +3.71948e-01,
+    'u_ch1': -2.88293e-03,
+    'v_ch1': -4.42155e-02,
     'uu_ch1': +0.00000e+00,
     'uv_ch1': +0.00000e+00,
     'vv_ch1': +0.00000e+00,
@@ -68,7 +68,7 @@ reaction_weights = {
 
 # === CONSTANT SOURCES (bias) ===
 a = +0.00000e+00  # source term for u-equation
-b = -1.28640e-01  # source term for v-equation
+b = +2.28497e-01  # source term for v-equation
 
 # initialize random initial condition around zero equilibrium
 # recompute the true Schnakenberg steady-state

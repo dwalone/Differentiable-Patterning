@@ -217,3 +217,31 @@ def vgg_init_params(x,y, key):
 	x = rearrange(x,"n c x y->n x y c")[...,:3]
 	y = rearrange(y,"n c x y->n x y c",)[...,:3]
 	return lpips.init(key, x, y)
+
+@jax.jit
+def huber(x, y, key=None, where=None, delta=0.1):
+    """
+    Huber loss function.
+
+    Parameters
+    ----------
+    x : float32 [...,CHANNELS,WIDTH,HEIGHT]
+        predictions
+    y : float32 [...,CHANNELS,WIDTH,HEIGHT]
+        true data
+    delta : float
+        threshold between L1 and L2 regimes
+
+    Returns
+    -------
+    loss : float32 array [...]
+        loss reduced over channel and spatial axes
+    """
+    error = x - y
+    abs_error = jnp.abs(error)
+    quadratic = jnp.minimum(abs_error, delta)
+    linear = abs_error - quadratic
+    loss = 0.5 * quadratic**2 + delta * linear
+    return jnp.nan_to_num(jnp.mean(loss, axis=[-1, -2, -3], where=where))
+
+

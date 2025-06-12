@@ -3,6 +3,7 @@ import jax.numpy as jnp
 def read_out(trainer, range_u, range_v, dt):
     # ============================ read‑out ===============================
     _, w_raw, b_raw = trainer.NCA_model.get_weights()
+    b_raw = jnp.squeeze(b_raw) 
     w_raw = jnp.squeeze(w_raw)  # (C_out, F)
     C = trainer.NCA_model.N_CHANNELS
     K_diff = 3 * C
