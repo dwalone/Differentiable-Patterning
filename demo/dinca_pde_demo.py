@@ -29,7 +29,7 @@ diffusion_weights = {
     'dx_ch0_ch1': +0.00000e+00,
     'dy_ch0_ch0': +0.00000e+00,
     'dy_ch0_ch1': +0.00000e+00,
-    'lap_ch0_ch0': +4.16885e-01,
+    'lap_ch0_ch0': +0.00000e+00,
     'lap_ch0_ch1': +0.00000e+00,
     # ΔChannel 1
     'dx_ch1_ch0': +0.00000e+00,
@@ -37,15 +37,15 @@ diffusion_weights = {
     'dy_ch1_ch0': +0.00000e+00,
     'dy_ch1_ch1': +0.00000e+00,
     'lap_ch1_ch0': +0.00000e+00,
-    'lap_ch1_ch1': -5.33304e-02,
+    'lap_ch1_ch1': +0.00000e+00,
 }
 
 
 # === REACTION TERMS (physical units) ===
 reaction_weights = {
     # ΔChannel 0
-    'u_ch0': +5.38385e-01,
-    'v_ch0': +1.45873e-01,
+    'u_ch0': +0.00000e+00,
+    'v_ch0': +1.45873e+00,
     'uu_ch0': +0.00000e+00,
     'uv_ch0': +0.00000e+00,
     'vv_ch0': +0.00000e+00,

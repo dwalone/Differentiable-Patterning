@@ -11,6 +11,7 @@ from NCA.trainer.tensorboard_log import NCA_Train_log, kaNCA_Train_log, mNCA_Tra
 from NCA.model.NCA_KAN_model import kaNCA
 from NCA.model.NCA_multi_scale import mNCA
 from NCA.model.NCA_multihead_attention import aNCA
+from NCA.model.NCA_DINCA import NCA_DINCA
 from NCA.trainer.data_augmenter_nca import DataAugmenter
 from einops import repeat
 from Common.utils import key_pytree_gen
@@ -386,8 +387,9 @@ class NCA_Trainer(object):
 				losses = v_loss_func(x, y, loss_key)
 				mean_loss = jnp.mean(losses)+STATE_REGULARISER*(jnp.mean(reg_log)/t)+BOUNDARY_REGULARISER*(jnp.mean(boundary_reg_log)/t)
 				#---------- PATCH 2 (cont.)
-				lam = getattr(_nca, "L1_COEFF", 1e-2)          # reads from the live copy
-				mean_loss = mean_loss + lam * _nca.l1_output_weight()
+				if isinstance(self.NCA_model, NCA_DINCA):
+					lam = getattr(_nca, "L1_COEFF", 0)          # reads from the live copy
+					mean_loss = mean_loss + lam * _nca.l1_output_weight()
 				return mean_loss,(x,losses)
 			
 			nca_diff,nca_static = nca.partition()

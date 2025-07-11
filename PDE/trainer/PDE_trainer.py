@@ -11,7 +11,8 @@ from PDE.trainer.data_augmenter_pde import DataAugmenter
 import Common.trainer.loss as loss
 from Common.model.boundary import model_boundary
 from Common.trainer.custom_functions import check_training_diverged
-from PDE.trainer.tensorboard_log import PDE_Train_log
+#from PDE.trainer.tensorboard_log import PDE_Train_log
+from PDE.trainer.pde_wandb_log import PDE_Train_log
 from PDE.trainer.optimiser import non_negative_diffusion_chemotaxis
 from PDE.model.solver.semidiscrete_solver import PDE_solver,save,load
 from functools import partial

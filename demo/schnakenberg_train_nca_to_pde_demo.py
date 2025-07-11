@@ -18,7 +18,7 @@ from NCA.trainer.data_augmenter_nca_from_pde_2 import DataAugmenter
 from NCA.model.NCA_model import NCA
 
 # training hyperparameters
-ITERS         = 8000        # total training iterations
+ITERS         = 4000        # total training iterations
 CHANNELS      = 8           # NCA channels
 SIZE          = 64          # spatial grid size
 BATCHES       = 1           # how many trajectories per batch

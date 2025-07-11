@@ -20,7 +20,7 @@ def construct_polynomials(X:Float[Array, "C"],max_power: Int[Scalar, ""])->Float
     else:
         n = X.shape[0]
         terms = []
-
+        terms.append(jnp.array(1.0, X.dtype))    # degree-0 constant
         for power in range(1, max_power + 1):
             for combo in combinations_with_replacement(range(n), power):
                 indices = jnp.array(combo)
@@ -65,7 +65,13 @@ def construct_polynomials_with_labels(X: jnp.ndarray, max_power: int, var_names=
     if var_names is None:
         var_names = [f"x{i}" for i in range(n)]
 
-    for power in range(1, max_power + 1):
+    for power in range(0, max_power + 1):
+        #-- degree-0: add the pure constant once and skip to next power ----
+        if power == 0:
+            terms.append(jnp.array(1.0, X.dtype))   # scalar "1" with same dtype
+            if return_labels:
+                labels.append("1")                  # explicit label for logger/mask
+            continue                                # go to power = 1
         for combo in combinations_with_replacement(range(n), power):
             indices = jnp.array(combo)
             term = jnp.prod(X[indices])

@@ -13,6 +13,7 @@ class F(eqx.Module):
     b: float
     D: float
     epsilon: float
+    N_CHANNELS: int
 
     def __init__(self,
                  PADDING,
@@ -20,7 +21,8 @@ class F(eqx.Module):
                  KERNEL_SCALE=1,
                  a=0.2,
                  b=0.8,
-                 D=50.0):
+                 D=50.0,
+                 N_CHANNELS=2):
         """
         Schnakenberg reaction-diffusion model:
           ∂U/∂t = Lap(U) + a - U + U^2 V
@@ -39,6 +41,7 @@ class F(eqx.Module):
         self.D = D
         self.ops = Ops(PADDING, dx, KERNEL_SCALE)
         self.epsilon = 1e-4
+        self.N_CHANNELS=N_CHANNELS
 
     def __call__(self,
                  t: Float[Scalar, ""],

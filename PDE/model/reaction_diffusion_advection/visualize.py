@@ -1,210 +1,131 @@
+# visualize_pde.py     (TensorFlow-free)
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import tensorflow as tf
+from einops import rearrange
+from PIL import Image
 import io
 import jax
 
-
-
+# ---------- helpers -------------------------------------------------
 def plot_to_image(figure):
-	"""Converts the matplotlib plot specified by 'figure' to a PNG image and
-	returns it. The supplied figure is closed and inaccessible after this call."""
-	# Save the plot to a PNG in memory.
-	buf = io.BytesIO()
-	plt.savefig(buf, format='png')
-	# Closing the figure prevents it from being displayed directly inside
-	# the notebook.
-	plt.close(figure)
-	buf.seek(0)
-	# Convert PNG buffer to TF image
-	image = tf.image.decode_png(buf.getvalue(), channels=4)
-	# Add the batch dimension
-	image = tf.expand_dims(image, 0)
-	return image
+    """
+    Convert a Matplotlib figure to a numpy image with shape (1, H, W, C),
+    so Train_log.log_image() can consume it.
+    """
+    buf = io.BytesIO()
+    figure.savefig(buf, format="png")
+    plt.close(figure)
+    buf.seek(0)
 
+    # read PNG bytes with Pillow instead of tf.image.decode_png
+    image = Image.open(buf)          # RGB(A) → numpy
+    image = np.array(image)
 
+    # add batch dimension to match the (1, H, W, C) convention
+    image = rearrange(image, "h w c -> () h w c")
+    return image
 
+# ---------- weight-matrix heatmaps ----------------------------------
 def plot_weight_matrices(pde):
-	"""
-	Plots heatmaps of NCA layer weights
+    """
+    Produce a list of images (numpy arrays) that visualise every dense layer
+    in advection / diffusion / reaction sub-nets.
+    """
+    figs = []
 
-	Parameters
-	----------
-	pde : object callable - (float32 array [T], float32 array [N_CHANNELS,_,_]) -> (float32 array [T,N_CHANNELS,_,_])
-		the PDE solver object to plot parameters of
+    # collect weights in exactly the same way as before
+    w_v, w_d, w_r, w_r_p, w_r_d = [], [], [], [], []
+    for i in range(pde.func.N_LAYERS + 1):
+        if "advection"          in pde.func.TERMS: w_v.append(pde.func.f_v.layers[2*i].weight[:,:,0,0])
+        if "diffusion_nonlinear" in pde.func.TERMS: w_d.append(pde.func.f_d.layers[2*i].weight[:,:,0,0])
+        if "diffusion"          in pde.func.TERMS: w_d.append(pde.func.f_d.layers[2*i].weight[:,:,0,0])
+        if "reaction_split"     in pde.func.TERMS:
+            w_r_p.append(pde.func.f_r.production_layers[2*i].weight[:,:,0,0])
+            w_r_d.append(pde.func.f_r.decay_layers[2*i].weight[:,:,0,0])
+        if "reaction_pure"      in pde.func.TERMS: w_r.append(pde.func.f_r.layers[2*i].weight[:,:,0,0])
 
-	Returns
-	-------
-	figs : list of images
-		a list of images
+    # helper to render a single heat-map
+    def _add_heatmaps(ws, title_prefix):
+        for idx, w in enumerate(ws):
+            fig = plt.figure(figsize=(5, 5))
+            col = max(np.max(w), -np.min(w))
+            plt.imshow(w, cmap="seismic", vmax=col, vmin=-col)
+            plt.ylabel("Output"), plt.xlabel("Input")
+            plt.title(f"{title_prefix} layer {idx}")
+            figs.append(plot_to_image(fig))
 
-		
+    if "advection"          in pde.func.TERMS: _add_heatmaps(w_v, "Advection")
+    if "diffusion_nonlinear" in pde.func.TERMS: _add_heatmaps(w_d, "Diffusion")
+    if "diffusion"          in pde.func.TERMS: _add_heatmaps(w_d, "Nonlinear Diffusion")
+    if "reaction_split"     in pde.func.TERMS:
+        _add_heatmaps(w_r_p, "Reaction production")
+        _add_heatmaps(w_r_d, "Reaction decay")
+    if "reaction_pure"      in pde.func.TERMS: _add_heatmaps(w_r, "Reaction")
 
-	"""
-	
-	w_v = []
-	w_d = []
-	w_r = []
-	w_r_p = []
-	w_r_d = []
+    return figs
 
-	for i in range(pde.func.N_LAYERS+1):
-		if "advection" in pde.func.TERMS:
-			w_v.append(pde.func.f_v.layers[2*i].weight[:,:,0,0])
-		if "diffusion_nonlinear" in pde.func.TERMS:
-			w_d.append(pde.func.f_d.layers[2*i].weight[:,:,0,0])
-		if "diffusion" in pde.func.TERMS:
-			w_d.append(pde.func.f_d.layers[2*i].weight[:,:,0,0])
-		if "reaction_split" in pde.func.TERMS:
-			w_r_p.append(pde.func.f_r.production_layers[2*i].weight[:,:,0,0])
-			w_r_d.append(pde.func.f_r.decay_layers[2*i].weight[:,:,0,0])
-		if "reaction_pure" in pde.func.TERMS:
-			w_r.append(pde.func.f_r.layers[2*i].weight[:,:,0,0])
-
-
-	figs = []
-	
-	if "advection" in pde.func.TERMS:
-		for i in range(pde.func.N_LAYERS+1):
-			figure = plt.figure(figsize=(5,5))
-			col_range = max(np.max(w_v[i]),-np.min(w_v[i]))
-			plt.imshow(w_v[i],cmap="seismic",vmax=col_range,vmin=-col_range)
-			plt.ylabel("Output")
-			plt.xlabel("Input")
-			plt.title(f"Advection layer {i}")
-			figs.append(plot_to_image(figure))
-	if "diffusion_nonlinear" in pde.func.TERMS:
-		for i in range(pde.func.N_LAYERS+1):
-			figure = plt.figure(figsize=(5,5))
-			col_range = max(np.max(w_d[i]),-np.min(w_d[i]))
-			plt.imshow(w_d[i],cmap="seismic",vmax=col_range,vmin=-col_range)
-			plt.ylabel("Output")
-			plt.xlabel("Input")
-			plt.title(f"Diffusion layer {i}")
-			figs.append(plot_to_image(figure))
-	if "diffusion" in pde.func.TERMS:
-		for i in range(pde.func.N_LAYERS+1):
-			figure = plt.figure(figsize=(5,5))
-			col_range = max(np.max(w_d[i]),-np.min(w_d[i]))
-			plt.imshow(w_d[i],cmap="seismic",vmax=col_range,vmin=-col_range)
-			plt.ylabel("Output")
-			plt.xlabel("Input")
-			plt.title(f"Nonlinear Diffusion layer {i}")
-			figs.append(plot_to_image(figure))
-
-	if "reaction_split" in pde.func.TERMS:
-		for i in range(pde.func.N_LAYERS+1):
-			figure = plt.figure(figsize=(5,5))
-			col_range = max(np.max(w_r_p[i]),-np.min(w_r_p[i]))
-			plt.imshow(w_r_p[i],cmap="seismic",vmax=col_range,vmin=-col_range)
-			plt.ylabel("Output")
-			plt.xlabel("Input")
-			plt.title(f"Reaction production layer {i}")
-			figs.append(plot_to_image(figure))
-		for i in range(pde.func.N_LAYERS+1): 
-			figure = plt.figure(figsize=(5,5))
-			col_range = max(np.max(w_r_d[i]),-np.min(w_r_d[i]))
-			plt.imshow(w_r_d[i],cmap="seismic",vmax=col_range,vmin=-col_range)
-			plt.ylabel("Output")
-			plt.xlabel("Input")
-			plt.title(f"Reaction decay layer {i}")
-			figs.append(plot_to_image(figure))
-	if "reaction_pure" in pde.func.TERMS:
-		for i in range(pde.func.N_LAYERS+1):
-			figure = plt.figure(figsize=(5,5))
-			col_range = max(np.max(w_r[i]),-np.min(w_r[i]))
-			plt.imshow(w_r[i],cmap="seismic",vmax=col_range,vmin=-col_range)
-			plt.ylabel("Output")
-			plt.xlabel("Input")
-			plt.title(f"Reaction layer {i}")
-			figs.append(plot_to_image(figure))
-	return figs
-
+# ---------- 1st-layer box-plots ------------------------------------
 def plot_weight_kernel_boxplot(pde):
-	"""
-	Plots boxplots of PDE 1st layer weights sorted by which channel they correspond to
+    """
+    Box-plots of the very first layer in each sub-net, split by channel.
+    """
+    figs = []
 
-	Parameters
-	----------
-	pde : object callable - (float32 array [T], float32 array [N_CHANNELS,_,_]) -> (float32 array [T,N_CHANNELS,_,_])
-		the PDE solver object to plot parameters of
+    def _boxplot_rows(w, title):
+        fig = plt.figure(figsize=(5, 5))
+        plt.boxplot(w.T)
+        plt.xlabel("Channels"), plt.ylabel("Weights"), plt.title(title)
+        figs.append(plot_to_image(fig))
 
-	Returns
-	-------
-	figs : list of images
-		a list of images
+    if "advection" in pde.func.TERMS:
+        _boxplot_rows(pde.func.f_v.layers[0].weight[:,:,0,0], "Advection 1st layer")
 
-	"""
-	figs = []
-	if "advection" in pde.func.TERMS:
-		w1_v = pde.func.f_v.layers[0].weight[:,:,0,0]
-		figure = plt.figure(figsize=(5,5))
-		plt.boxplot(w1_v.T)
-		plt.xlabel("Channels")
-		plt.ylabel("Weights")
-		plt.title("Advection 1st layer")
-		figs.append(plot_to_image(figure))
-	
-	if "diffusion_nonlinear" in pde.func.TERMS:
-		w1_d = pde.func.f_d.layers[0].weight[:,:,0,0]
-		figure = plt.figure(figsize=(5,5))
-		plt.boxplot(w1_d.T)
-		plt.xlabel("Channels")
-		plt.ylabel("Weights")
-		plt.title("Diffusion 1st layer")
-		figs.append(plot_to_image(figure))
+    if "diffusion_nonlinear" in pde.func.TERMS:
+        _boxplot_rows(pde.func.f_d.layers[0].weight[:,:,0,0], "Diffusion 1st layer")
 
-	if "diffusion_linear" in pde.func.TERMS:
-		w1_d = pde.func.f_d.diffusion_constants[:,0,0]
-		figure = plt.figure(figsize=(5,5))
-		plt.bar(np.arange(len(w1_d)),jax.nn.sparse_plus(w1_d))
-		plt.xlabel("Channels")
-		plt.ylabel("Weights")
-		plt.title("Diffusion coefficients")
-		figs.append(plot_to_image(figure))
+    if "diffusion_linear" in pde.func.TERMS:
+        w = pde.func.f_d.diffusion_constants[:,0,0]
+        fig = plt.figure(figsize=(5,5))
+        plt.bar(np.arange(len(w)), jax.nn.sparse_plus(w))
+        plt.xlabel("Channels"), plt.ylabel("Weights"), plt.title("Diffusion coefficients")
+        figs.append(plot_to_image(fig))
 
-	if "diffusion" in pde.func.TERMS:
-		w1_d = pde.func.f_d.layers[0].weight[:,:,0,0]
-		figure = plt.figure(figsize=(5,5))
-		plt.boxplot(w1_d.T)
-		plt.xlabel("Channels")
-		plt.ylabel("Weights")
-		plt.title("Nonlinear Diffusion 1st layer")
-		figs.append(plot_to_image(figure))
+    if "diffusion" in pde.func.TERMS:
+        _boxplot_rows(pde.func.f_d.layers[0].weight[:,:,0,0], "Non-linear Diffusion 1st layer")
+        w_lin = pde.func.f_d.diffusion_constants[:,0,0]
+        fig = plt.figure(figsize=(5,5))
+        plt.bar(np.arange(len(w_lin)), jax.nn.sparse_plus(w_lin))
+        plt.xlabel("Channels"), plt.ylabel("Weights"), plt.title("Linear Diffusion coefficients")
+        figs.append(plot_to_image(fig))
 
-		w1_d_l = pde.func.f_d.diffusion_constants[:,0,0]
-		figure = plt.figure(figsize=(5,5))
-		plt.bar(np.arange(len(w1_d_l)),jax.nn.sparse_plus(w1_d_l))
-		plt.xlabel("Channels")
-		plt.ylabel("Weights")
-		plt.title("Linear Diffusion coefficients")
-		figs.append(plot_to_image(figure))
+    if "reaction_split" in pde.func.TERMS:
+        _boxplot_rows(pde.func.f_r.production_layers[0].weight[:,:,0,0], "Reaction production 1st layer")
+        _boxplot_rows(pde.func.f_r.decay_layers[0].weight[:,:,0,0], "Reaction decay 1st layer")
 
-	if "reaction_split" in pde.func.TERMS:
-		w1_r_p = pde.func.f_r.production_layers[0].weight[:,:,0,0]
-		figure = plt.figure(figsize=(5,5))
-		plt.boxplot(w1_r_p.T)
-		plt.xlabel("Channels")
-		plt.ylabel("Weights")
-		plt.title("Reaction production 1st layer")
-		figs.append(plot_to_image(figure))
+    if "reaction_pure" in pde.func.TERMS:
+        _boxplot_rows(pde.func.f_r.layers[0].weight[:,:,0,0], "Reaction 1st layer")
 
-		w1_r_d = pde.func.f_r.decay_layers[0].weight[:,:,0,0]
-		figure = plt.figure(figsize=(5,5))
-		plt.boxplot(w1_r_d.T)
-		plt.xlabel("Channels")
-		plt.ylabel("Weights")
-		plt.title("Reaction decay 1st layer")
-		figs.append(plot_to_image(figure))
-	
-	if "reaction_pure" in pde.func.TERMS:
-		w1_r = pde.func.f_r.layers[0].weight[:,:,0,0]
-		figure = plt.figure(figsize=(5,5))
-		plt.boxplot(w1_r.T)
-		plt.xlabel("Channels")
-		plt.ylabel("Weights")
-		plt.title("Reaction 1st layer")
-		figs.append(plot_to_image(figure))
+    return figs
 
-	return figs
+# ---------- optional animation util (unchanged) --------------------
+def my_animate(img, clip=True):
+    """
+    Produce an interactive Matplotlib animation from an array of frames.
+    img : float[ N, rgb, H, W ] in [0,1] or int
+    """
+    if clip:  img = np.clip(img, 0.0, 1.0)
+    img = np.einsum("ncxy->nxyc", img)
+
+    frames, fig = [], plt.figure()
+    for t in range(img.shape[0]):
+        frames.append([plt.imshow(img[t], animated=True)])
+    ani = animation.ArtistAnimation(fig, frames, interval=50, blit=True, repeat_delay=0)
+    plt.show()
+
+# ---------- helper to sort kernel strings (unchanged) --------------
+def sort_kstr(K_STR):
+    K_SORTED = []
+    for s in ["ID", "DIFF", "GRAD", "AV", "LAP"]:
+        if s in K_STR: K_SORTED.append(s)
+    return K_SORTED

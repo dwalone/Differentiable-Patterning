@@ -29,3 +29,5 @@ NCA/model/__pycache__/NCA_model.cpython-38.pyc
 NCA/trainer/__pycache__/loss.cpython-38.pyc
 wandb/*
 venv/
+dinca-main/
+torchvenv/

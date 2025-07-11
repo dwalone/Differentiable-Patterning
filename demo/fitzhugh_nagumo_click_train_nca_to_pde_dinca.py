@@ -16,7 +16,7 @@ from Common.model.spatial_operators import Ops
 from PDE.model.fixed_models.update_fhn import F as F_fhn
 from PDE.model.solver.semidiscrete_solver import PDE_solver
 from NCA.trainer.NCA_trainer import NCA_Trainer
-from NCA.trainer.data_augmenter_nca_from_pde_2_dinca import DataAugmenter
+from NCA.trainer.data_augmenter_nca_from_pde_2 import DataAugmenter
 from NCA.model.NCA_DINCA import NCA_DINCA as NCA
 from demo.dinca_read_out import read_out
 from demo.optimisers import masked_optimiser, normal_optimiser, warmup_optimiser
@@ -25,7 +25,7 @@ from demo.optimisers import masked_optimiser, normal_optimiser, warmup_optimiser
 ITERS         = 4000        # total training iterations
 CHANNELS      = 2           # NCA hidden channels
 SIZE          = 64          # spatial grid size
-BATCHES       = 10           # how many trajectories per batch
+BATCHES       = 8           # how many trajectories per batch
 TIME_SAMPLING = 32          # solver steps between recorded frames
 LEARN_RATE    = 1e-3        # base learning rate
 DT            = 1e-2     # time step used by the PDE solver
@@ -135,7 +135,7 @@ range_u, range_v = float(range_uv[0]), float(range_uv[1])
 nca = NCA(
     N_CHANNELS=CHANNELS,
     KERNEL_STR=["ID", "LAP", "GRAD"],
-    FIRE_RATE=0.5,
+    FIRE_RATE=1,
     key=key
 )
 
@@ -153,9 +153,9 @@ keep_diff = [(0, 4), (1, 5)] # Δu gets ∇²u, Δv gets ∇²v
 # Reaction: define what each Δchannel can use
 keep_reac = {
     0: ['u', 'v', 'uuu'],   # only these on Δu
-    1: ['u', 'v']    # only these on Δv
+    1: ['1', 'u', 'v']    # only these on Δv
 }
-bias_mask = [False, True]
+bias_mask = [False, False]
 optimiser = masked_optimiser(ITERS, LEARN_RATE, nca, keep_diff, keep_reac, bias_mask)
 #optimiser = normal_optimiser(ITERS, LEARN_RATE, 0.99)
 #optimiser = warmup_optimiser(ITERS, LEARN_RATE)
@@ -168,7 +168,7 @@ trainer.train(
     ITERS,
     WARMUP=50,
     optimiser=optimiser,
-    LOSS_FUNC_STR="l1",
+    LOSS_FUNC_STR="l2",
     LOOP_AUTODIFF="lax",
     LOG_EVERY=50,
     key=key,

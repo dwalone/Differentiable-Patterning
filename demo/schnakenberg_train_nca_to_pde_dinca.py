@@ -34,16 +34,16 @@ from Common.model.spatial_operators import Ops
 from PDE.model.fixed_models.update_schnakenberg import F as F_schnakenberg
 from PDE.model.solver.semidiscrete_solver import PDE_solver
 from NCA.trainer.NCA_trainer import NCA_Trainer
-from NCA.trainer.data_augmenter_nca_from_pde_2_chemotaxis import DataAugmenter
+from NCA.trainer.data_augmenter_nca_from_pde_2 import DataAugmenter
 from NCA.model.NCA_DINCA import NCA_DINCA as NCA
 from demo.dinca_read_out import read_out
 from demo.optimisers import masked_optimiser, normal_optimiser, warmup_optimiser
 
 # ------------------------- hyper‑parameters --------------------------
-ITERS         = 4000      # optimisation steps
+ITERS         = 8000      # optimisation steps
 CHANNELS      = 2        # NCA channels (u, v)
 SIZE          = 64
-BATCHES       = 10        # trajectories per batch
+BATCHES       = 1        # trajectories per batch
 TIME_SAMPLING = 32       # frames between snapshots
 LEARN_RATE    = 1e-5
 DT            = 5e-3     # time step used by the PDE solver
@@ -86,7 +86,7 @@ range_uv = ptps.squeeze()  # shape (C,)
 range_u, range_v = float(range_uv[0]), float(range_uv[1])
 
 # --------------------------- NCA + trainer ---------------------------
-nca = NCA(N_CHANNELS=CHANNELS, FIRE_RATE=1.0, key=key, KERNEL_STR=["ID", "LAP", "GRAD"])
+nca = NCA(N_CHANNELS=CHANNELS, FIRE_RATE=0.5, key=key, KERNEL_STR=["ID", "LAP", "GRAD"])
 trainer = NCA_Trainer(nca, Y,
                       model_filename="demo/train_nca_to_pde_schnakenberg",
                       DATA_AUGMENTER=DataAugmenter, GRAD_LOSS=True, OBS_CHANNELS = 2)
@@ -96,30 +96,15 @@ trainer = NCA_Trainer(nca, Y,
 keep_diff = [(0, 4), (1, 5)] # Δu gets ∇²u, Δv gets ∇²v
 # Reaction: define what each Δchannel can use
 keep_reac = {
-    0: ['u', 'uuv'],   # only these on Δu
-    1: ['uuv']    # only these on Δv
+    0: ['1', 'u', 'uuv'],   # only these on Δu
+    1: ['1', 'uuv']    # only these on Δv
 }
-bias_mask = [True, True]
+bias_mask = [False, False]
 
-#optimiser = masked_optimiser(ITERS, LEARN_RATE, nca, keep_diff, keep_reac, bias_mask)
-optimiser = normal_optimiser(ITERS, LEARN_RATE, 0.99)
+optimiser = masked_optimiser(ITERS, LEARN_RATE, nca, keep_diff, keep_reac, bias_mask)
+#optimiser = normal_optimiser(ITERS, LEARN_RATE, 0.99)
 #optimiser = warmup_optimiser(ITERS, LEARN_RATE)
 print(os.path.abspath("models/demo/train_nca_to_pde_schnakenberg"))
-# ------------- curriculum parameters -----------------
-# t_schedule  = [4, 8, 16, 32]          # horizons
-# iters_total = 4000
-# iters_per   = iters_total // len(t_schedule)
-# # ------------- staged training -----------------------
-# for phase, t_unroll in enumerate(t_schedule):
-#     print(f"\n── Phase {phase}  (t = {t_unroll}) ──")
-#     trainer.train(
-#         t_unroll,
-#         iters_per,
-#         optimiser=optimiser,
-#         WARMUP=0 if phase else 50,
-#         LOG_EVERY=50,
-#         key=jr.fold_in(key, phase),
-#     )
 
 # 10) run training: still 32 micro‐steps per data‐frame
 trainer.train(
@@ -127,11 +112,11 @@ trainer.train(
     ITERS,
     WARMUP=50,
     optimiser=optimiser,
-    LOSS_FUNC_STR="l1",
+    LOSS_FUNC_STR="l2",
     LOOP_AUTODIFF="lax",
     LOG_EVERY=50,
     key=key,
-    SPARSE_PRUNING=True,
+    SPARSE_PRUNING=False,
     TARGET_SPARSITY=0.5
 )
 
