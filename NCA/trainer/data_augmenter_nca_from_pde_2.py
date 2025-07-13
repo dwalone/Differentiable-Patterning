@@ -90,3 +90,15 @@ def jittable_callback_bit(x,x_true,OBS_CHANNELS):
     for b in range(len(x)//2):
         x[b*2] = x[b*2].at[:,:OBS_CHANNELS].set(x_true[b*2][:,:OBS_CHANNELS]) # Set every other batch of intermediate initial conditions to correct initial conditions
     return x
+
+# @eqx.filter_jit
+# def jittable_callback_bit(x, x_true, OBS, i, period=10):
+#     propagate = lambda s: s.at[1:].set(s[:-1])
+#     x = jax.tree_util.tree_map(propagate, x)
+#     x = jax.tree_util.tree_map(lambda s, t: s.at[0].set(t[0]), x, x_true)
+
+#     if (i % period) == 0:                       # every 'period' iters
+#         for b in range(len(x)//2):
+#             x[b*2] = x[b*2].at[:,:OBS].set(x_true[b*2][:,:OBS])
+#     return x
+

@@ -1,0 +1,22 @@
+# infer_jobs.yaml
+script: demo/schnakenberg_nca_batch_inference.py    # patched version
+mix:    "0:4,1:1,2:3,3:3,4:3"                       # IC composition
+out_root: batch_inference                           # parent output dir
+
+models:                                             # explicit list
+  - models/demo/2025-07-dT18-18_TI32_LE5e-4_FI0.5_ST1.0_LOl1.eqx
+  - models/demo/2025-07-dT18-43_TI32_LE5e-4_FI0.5_ST1.0_LOeuclidean.eqx
+  - models/demo/2025-07-dT19-06_TI32_LE5e-4_FI1.0_ST1.0_LOl1.eqx
+  - models/demo/2025-07-dT19-27_TI32_LE5e-4_FI1.0_ST1.0_LOeuclidean.eqx
+  - models/demo/2025-07-dT23-50_TI32_LE1e-4_FI0.5_ST1.0_LOl1.eqx
+  - models/demo/2025-07-dT00-11_TI32_LE1e-4_FI0.5_ST1.0_LOeuclidean.eqx
+  - models/demo/2025-07-dT00-32_TI32_LE1e-4_FI1.0_ST1.0_LOl1.eqx
+  - models/demo/2025-07-dT00-54_TI32_LE1e-4_FI1.0_ST1.0_LOeuclidean.eqx
+  - models/demo/2025-07-dT01-54_TI64_LE5e-4_FI0.5_ST1.0_LOl1.eqx
+  - models/demo/2025-07-dT02-56_TI64_LE5e-4_FI1.0_ST1.0_LOl1.eqx
+  - models/demo/2025-07-dT03-59_TI64_LE1e-4_FI0.5_ST1.0_LOl1.eqx
+  - models/demo/2025-07-dT05-06_TI64_LE1e-4_FI1.0_ST1.0_LOl1.eqx
+  - models/demo/2025-07-dT12-25_TI64_LE5e-4_FI0.5_ST1.0_LOeuclidean.eqx
+  - models/demo/2025-07-dT12-59_TI64_LE5e-4_FI1.0_ST1.0_LOeuclidean.eqx
+  - models/demo/2025-07-dT13-31_TI64_LE1e-4_FI0.5_ST1.0_LOeuclidean.eqx
+  - models/demo/2025-07-dT14-02_TI64_LE1e-4_FI1.0_ST1.0_LOeuclidean.eqx

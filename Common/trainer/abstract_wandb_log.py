@@ -2,7 +2,7 @@ import wandb
 import numpy as np
 from jaxtyping import Float, Array
 from einops import rearrange
-wandb.login(key="c969e9166d4abf8c10db353deaa242e386db8b99")
+wandb.login(key="e5b76dd08e1a70d547f6c8fc6b4d2621d87cd3b1")
 class Train_log(object):
     def __init__(
         self,
@@ -68,7 +68,12 @@ class Train_log(object):
             raise ValueError("Image must be 3D or 4D (batch)")
 
     def log_histogram(self, tag, values, step=None):
-        wandb.log({tag: wandb.Histogram(values)}, step=step)
+        v = np.asarray(values)
+        if v.size < 2 or np.allclose(v.min(), v.max()):
+            # range == 0 → histogram meaningless; log scalar instead
+            wandb.log({tag: float(v.flatten()[0])}, step=step)
+        else:
+            wandb.log({tag: wandb.Histogram(v)}, step=step)
 
     def log_text(self, tag, text, step=None):
         wandb.log({tag: text}, step=step)

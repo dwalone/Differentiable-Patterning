@@ -1,0 +1,9 @@
+output_root:  demo/                            # parent folder for models
+script:       demo/schnakenberg_train_nca_to_pde_demo.py
+
+grid:
+  TIME_SAMPLING: [64]
+  LEARN_RATE:    [5e-4, 1e-4]
+  FIRE_RATE:     [0.5, 1.0]
+  STATE_REGULARISER: [1.0]
+  LOSS:          ["euclidean"]
