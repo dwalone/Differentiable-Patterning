@@ -99,7 +99,7 @@ def make_ic(key, choice: jnp.ndarray):
 parser = argparse.ArgumentParser()
 parser.add_argument("--model",  type=str, required=True, help="*.eqx file")
 parser.add_argument("--mix",    type=str,
-    default="0:3,1:5,2:5,3:5,4:2",
+    default="0:4,1:1,2:3,3:3,4:3",
     help="comma-sep counts per IC type, e.g. '0:2,1:1'")
 parser.add_argument("--outdir", type=str, default="batch_inference")
 parser.add_argument("--seed",   type=int, default=123)
@@ -131,15 +131,16 @@ choices = jnp.concatenate(
 x0 = jax.vmap(make_ic)(sub, choices)        # (B,2,H,W)
 
 # ---------- ground-truth PDE trajectory ---------------------------
+sampling_constant = 32
 rhs  = F_schnakenberg(PADDING="CIRCULAR", dx=DX, a=a, b=b, D=D)
 vrhs = eqx.filter_vmap(rhs, in_axes=(None, 0, None), out_axes=0)
 solver = PDE_solver(vrhs, 5e-3)
-ts = jnp.linspace(0, TIME_SAMPLING*3, TIME_SAMPLING*NUM_INTERVALS)
+ts = jnp.linspace(0, sampling_constant*3, sampling_constant*NUM_INTERVALS)
 T, Ypde = solver(ts, x0)                    # (T,B,2,H,W)
 Ypde = rearrange(Ypde, "T B C H W -> B T C H W")
 Ypde = Ypde[:, :, :1]                       # keep U
 Ypde = (Ypde - Ypde.min()) / (Ypde.max() - Ypde.min())
-Ypde = Ypde[:, ::TIME_SAMPLING]             # [B,T,1,H,W]
+Ypde = Ypde[:, ::sampling_constant]             # [B,T,1,H,W]
 
 # ---------- load trained NCA --------------------------------------
 dummy_nca = NCA(
@@ -179,7 +180,33 @@ mean_mse = float(jnp.mean(mse))
 #print("\n Per-trajectory squared error:", mse)
 print(f" Batch-mean squared error: {mean_mse:.4e}")
 
-# ---------- optional visualisation of first trajectory ------------
+#---------- optional visualisation of first trajectory ------------
+# ---------- Save visualizations for all trajectories ------------
+for i in range(len(Ypde)):
+    gt, pr = Ypde[i], preds[i]
+    fig, axes = plt.subplots(3, NUM_INTERVALS, figsize=(3*NUM_INTERVALS, 9))
+    
+    for t in range(NUM_INTERVALS):
+        axes[0, t].imshow(gt[t, 0], origin="lower")
+        axes[0, t].axis("off")
+        axes[1, t].imshow(pr[t, 0], origin="lower")
+        axes[1, t].axis("off")
+        err = (gt[t, 0] - pr[t, 0])**2
+        im = axes[2, t].imshow(err, origin="lower")
+        axes[2, t].axis("off")
+    
+    axes[0, 0].set_ylabel("GT")
+    axes[1, 0].set_ylabel("NCA")
+    axes[2, 0].set_ylabel("Err")
+    plt.colorbar(im, ax=axes[2, :], orientation="horizontal", shrink=0.7)
+    plt.suptitle(f"Traj {i} / N={BATCHES}  mean MSE={mean_mse:.3e}")
+    
+    filename = os.path.join(args.outdir, f"grid_{i}.png")
+    fig.savefig(filename, dpi=150)
+    plt.close(fig)
+
+
+
 # gt, pr = Ypde[0], preds[0]
 # fig, axes = plt.subplots(3, NUM_INTERVALS, figsize=(3*NUM_INTERVALS,9))
 # for t in range(NUM_INTERVALS):
