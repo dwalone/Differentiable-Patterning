@@ -9,7 +9,7 @@ for combo in itertools.product(*values):
     kwargs = dict(zip(keys, combo))
 
     # unique model name e.g. 2025-07-11T15-00_TS32_CH16_Lspectral
-    stamp = dt.datetime.now().strftime("%Y-%m-dT%H-%M")
+    stamp = dt.datetime.now().strftime("%Y-%m-%dT%H-%M")
     tag   = "_".join(f"{k[:2]}{v}" for k, v in kwargs.items())
     model_dir = pathlib.Path(cfg["output_root"], f"{stamp}_{tag}")
     model_dir.mkdir(parents=True, exist_ok=True)
@@ -19,6 +19,7 @@ for combo in itertools.product(*values):
     args = [
         "python", cfg["script"],
         "--time_sampling", str(kwargs["TIME_SAMPLING"]),
+        "--pde", kwargs["PDE"],
         "--learn_rate",    str(kwargs["LEARN_RATE"]),
         "--loss",          kwargs["LOSS"],
         "--model_filename", str(model_dir),

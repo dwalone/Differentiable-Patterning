@@ -8,7 +8,7 @@ import sys
 sys.path.append('..')
 from einops import rearrange
 from Common.model.spatial_operators import Ops
-from PDE.model.fixed_models.update_chhabra import F as F_chhabra
+from PDE.model.fixed_models.update_gray_scott import F as F_chhabra
 from PDE.model.solver.semidiscrete_solver import PDE_solver
 from NCA.trainer.NCA_trainer import NCA_Trainer
 from NCA.trainer.data_augmenter_nca_from_pde_2 import DataAugmenter
@@ -19,19 +19,45 @@ from NCA.model.NCA_model import NCA
 #--- Set model and training parameters
 ITERS = 8000        # Training iterations
 CHANNELS = 8        # NCA channels
-SIZE = 32           # Grid size
+SIZE = 64           # Grid size
 BATCHES = 2         # Data batches
 TIME_SAMPLING = 32  # Timesteps between data snapshots
 LEARN_RATE = 1e-4   # Learn rate for gradient optimiser
 
 #--- Set up true PDE trajectory
+#--- Set up true PDE trajectory
+#--- Set up true PDE trajectory
+#--- Set up true PDE trajectory
 key = jax.random.PRNGKey(int(time.time()))
-scale=0.5
-x0 = jr.uniform(key,shape=(BATCHES,2,SIZE,SIZE))*scale
+
+#--- Set up initial condition: a single circular blob inverted
+def make_central_blob_inverted(batch_size, size, radius):
+    # empty [B,2,H,W]
+    x = jnp.zeros((batch_size, 2, size, size))
+    # build circle mask
+    coords = jnp.arange(size)
+    xx, yy = jnp.meshgrid(coords, coords, indexing='ij')
+    circle = ((xx - size//2)**2 + (yy - size//2)**2) < (radius**2)
+    mask = circle.astype(x.dtype)   # 1 inside blob, 0 outside
+    # swap: U = 1−mask (white background, black dot), V = mask
+    x = x.at[:, 0].set(1 - mask)    # U channel
+    x = x.at[:, 1].set(mask)        # V channel
+    return x
+
+blob_radius = SIZE // 8
+x0 = make_central_blob_inverted(BATCHES, SIZE, blob_radius)
+
+
+# choose radius (e.g. an eighth of grid size)
+blob_radius = SIZE // 8
+x0 = make_central_blob_inverted(BATCHES, SIZE, blob_radius)
+
+
+
 func = F_chhabra(PADDING="CIRCULAR",dx=0.5,KERNEL_SCALE=1)
 v_func = eqx.filter_vmap(func,in_axes=(None,0,None),out_axes=0) # Parallelise func over BATCHES axis
-solver = PDE_solver(v_func,dt=0.1)
-T,Y = solver(ts=jnp.linspace(0,5000,TIME_SAMPLING*8),y0=x0)
+solver = PDE_solver(v_func,dt=0.2)
+T,Y = solver(ts=jnp.linspace(0,10000,TIME_SAMPLING*8),y0=x0)
 Y = rearrange(Y,"T B C X Y -> B T C X Y")                       # Reshape data so batch axis is first
 Y = Y[:,:,:1]                                                   # Only include main channel, not inhibitor/other chemical - see if the NCA can learn from only 1 channel
 Y = (Y-jnp.min(Y))/(jnp.max(Y)-jnp.min(Y))                      # Rescale data between 0 and 1
@@ -41,7 +67,7 @@ Y = Y[:,::TIME_SAMPLING]                                        # Downsample alo
 
 # Define NCA model
 nca = NCA(N_CHANNELS=CHANNELS,          # An important NCA hyperparameter - how many channels
-          KERNEL_STR=["ID","LAP"],      # What spatial derivatives/kernels to use? For this PDE we should only need Identity and Laplacian
+          KERNEL_STR=["ID","LAP", "GRAD"],      # What spatial derivatives/kernels to use? For this PDE we should only need Identity and Laplacian
           ACTIVATION=jax.nn.relu,       # What nonlinear activation function to use? Must be of form F: x -> x
           FIRE_RATE=1.0,                # Probability that each pixel gets updated at each timestep - for PDE training set this to 1
           key=key)                      # JAX PRNGKey for initialisation
