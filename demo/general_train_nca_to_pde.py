@@ -6,8 +6,8 @@ import jax, jax.numpy as jnp, jax.random as jr, equinox as eqx, optax
 from einops import rearrange
 from Common.model.spatial_operators import Ops
 from PDE.model.fixed_models.update_schnakenberg import F as F_schnakenberg
-from PDE.model.fixed_models.update_gray_scott_new import F as F_gray_scott
-from PDE.model.fixed_models.update_gray_scott import F as F_gray_scott_old
+from PDE.model.fixed_models.update_gray_scott import F as F_gray_scott
+from PDE.model.fixed_models.update_keller_segel import F as F_ks
 from PDE.model.fixed_models.update_fhn import F as F_fhn
 from PDE.model.solver.semidiscrete_solver import PDE_solver
 from NCA.trainer.NCA_trainer import NCA_Trainer
@@ -21,7 +21,7 @@ import numpy as np
 # ------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 parser.add_argument("--pde",            default="schnakenberg",
-                    choices=["schnakenberg", "fhn", "gs_glider", "gs_labyrinth", "gs_uskate", "gs_old"])
+                    choices=["schnakenberg", "fhn", "gs1", "gs2", "gs3", "ks"])
 parser.add_argument("--time_sampling",  type=int,   default=32)
 parser.add_argument("--learn_rate",     type=float, default=5e-4)
 parser.add_argument("--channels",       type=int,   default=16)
@@ -44,6 +44,13 @@ FIRE_RATE     = args.fire_rate
 STATE_REGULARISER = args.state_reg
 MODEL_DIR     = f"{args.model_filename}_{args.pde}"
 RADIUS = 6   # 3 → 7×7 square
+CELL_CHANNELS   = 1 #chemotaxis
+SIGNAL_CHANNELS = 1 #chemotaxis
+# ------------------------------------------------------------------
+# Static 3×3 circular averaging kernel for Gray–Scott noisy seeds
+# ------------------------------------------------------------------
+AVG_OP_GS = Ops(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=3)
+
 
 
 # ------------------------------------------------------------------
@@ -55,13 +62,13 @@ PDE_CONFIGS = {  # all floats (jnp)
                                             p["b"]/(p["a"]+p["b"])**2)),
     "fhn":          dict(D=20.0, eps_v=0.5, a_v=1.0, a_z=-0.1,
                          steady=lambda p: (0.0, 0.0)),
-    "gs_glider":    dict(a=0.014, b=0.054, D=2.0,
-                         steady=lambda p: (0.0, 1.0)),  # U=1,V=0 in GS conv.
-    "gs_labyrinth": dict(a=0.037, b=0.06, D=2.0,
-                         steady=lambda p: (0.0, 1.0)),
-    "gs_uskate":    dict(a=0.062, b=0.061, D=2.0,
-                         steady=lambda p: (0.0, 1.0)),
-    "gs_old":       dict(DA=0.1,DB=0.05,alpha=0.06230,gamma=0.06268,
+    "gs1":       dict(DA=0.1,DB=0.05,alpha=0.06230,gamma=0.06268, #labyrithn
+                         steady=lambda p: (0.0, 0.0)),
+    "gs2":       dict(DA=0.1,DB=0.05,alpha=0.046,gamma=0.065, #worms
+                         steady=lambda p: (0.0, 0.0)),
+    "gs3":       dict(DA=0.1,DB=0.05,alpha=0.018,gamma=0.055,
+                         steady=lambda p: (0.0, 0.0)),
+    "ks":  dict(alpha=0.01, c=3.8, D=0.8, epsilon=0.1,
                          steady=lambda p: (0.0, 0.0)),
 }
 
@@ -73,10 +80,10 @@ def make_rhs(pde_name, **pars):
         return F_schnakenberg(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=1, **pars)
     if pde_name == "fhn":
         return F_fhn(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=1, **pars)
-    if pde_name == "gs_old":
-        return F_gray_scott_old(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=1, **pars)
-    if pde_name in ["gs_glider", "gs_labyrinth", "gs_uskate"]:
+    if pde_name in ["gs1", "gs2", "gs3"]:
         return F_gray_scott(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=1, **pars)
+    if pde_name == "ks":
+        return F_ks(PADDING="CIRCULAR", dx=0.5, KERNEL_SCALE=1, **pars)
     raise ValueError("unknown PDE")
 
 rhs   = make_rhs(args.pde, **{k: v for k, v in cfg.items() if k != "steady"})
@@ -102,16 +109,45 @@ def make_ic(key, choice: jnp.ndarray):
         return U, V
 
     def noise(_):
-        U, V = _base()
-        r1, r2 = jr.split(k1)
-        U += sigma * jr.normal(r1, (SIZE, SIZE))
-        V += sigma * jr.normal(r2, (SIZE, SIZE))
-        return jnp.stack([U, V])
+        if args.pde.startswith("gs"):
+            """Smoothed random mask for Gray–Scott, or Gaussian noise otherwise."""
+            # 1) uniform noise in both channels ...............................
+            X = jr.uniform(k2, (2, SIZE, SIZE), dtype=jnp.float32)
 
-    def central(_):
-        U, V = _base()
-        U = _scatter(U, k2, n=1, delta=0.2, radius=RADIUS)   # use same helper
-        return jnp.stack([U, V])
+            # 2) blur helper (expects (H,W) , returns (H,W))
+            blur = lambda z: AVG_OP_GS.Average(z[None, ...])[0]
+
+            # 3) 5× blur on each channel (vmap over channel axis) ...........
+            for _ in range(5):
+                X = jax.vmap(blur)(X)
+
+            # 4) threshold first channel to binary mask ......................
+            U, V = X
+            mask = (U > 0.51).astype(U.dtype)
+            U    = 1.0 - mask            # white background, dark blobs
+
+            # 5) soften edges + enforce U+V = 1 ..............................
+            U    = blur(U)
+            V    = 1.0 - U
+            return jnp.stack([U, V])     # (2,H,W)
+        elif args.pde == "ks":
+            # --- Uniform[0,0.1] in cell channel, zero chemo -------------
+            U = jr.uniform(
+                k2,
+                shape=(SIZE, SIZE),
+                minval=0.0,
+                maxval=0.1,
+                dtype=jnp.float32
+            )
+            V = jnp.zeros_like(U)          # chemoattractant initially 0
+            X = jnp.stack([U, V], axis=0)  # shape (2, H, W)
+            return X
+        else:
+            U, V = _base()
+            r1, r2 = jr.split(k1)
+            U += sigma * jr.normal(r1, (SIZE, SIZE))
+            V += sigma * jr.normal(r2, (SIZE, SIZE))
+            return jnp.stack([U, V])
 
 
     def gaussian_patch(r, delta=0.2, sigma=1.5):
@@ -124,34 +160,34 @@ def make_ic(key, choice: jnp.ndarray):
     # Gray–Scott “inverted” circular blobs
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
-    # Gray–Scott OLD : inverted blobs (no square artefacts, JIT-safe) ---
+    # ------------------------------------------------------------------
+    # Gray–Scott OLD : overlap-safe inverted blobs  ---------------------
     def gs_inverted_blob(rng, n=1, radius=SIZE // 8):
         """
-        Return U,V  (H×H) with white background (U=1,V=0) and
-        n circular blobs where U=0, V=1.  Works inside JIT / vmap.
+        White background (U=1, V=0) with `n` circular blobs where
+        U=0, V=1.  Overlapping blobs merge without square artefacts.
         """
-        H   = SIZE
-        U   = jnp.ones((H, H), dtype=jnp.float32)   # background
-        V   = jnp.zeros_like(U)
+        H = SIZE
+        U = jnp.ones((H, H), dtype=jnp.float32)     # background U=1
+        V = jnp.zeros_like(U)                       # background V=0
 
-        coords  = jnp.arange(-radius, radius + 1)
-        xx, yy  = jnp.meshgrid(coords, coords, indexing="ij")
-        circle  = ((xx**2 + yy**2) <= radius**2).astype(U.dtype)   # 1 inside
-        patchU  = 1.0 - circle     # 0 inside, 1 outside (matches bg)
-        patchV  =        circle    # 1 inside, 0 outside
+        # pre-compute coordinate grids once (static w.r.t. loop)
+        xs = jnp.arange(H)[:, None]                 # shape (H,1)
+        ys = jnp.arange(H)[None, :]                 # shape (1,H)
 
-        xy = jr.randint(rng, (n, 2), radius, H - radius)           # centres
+        centres = jr.randint(rng, (n, 2), radius, H - radius)  # (n,2)
 
         def body(carry, centre):
             A, B = carry
-            x, y = centre
-            idx  = (x - radius, y - radius)        # top-left corner
-            A    = lax.dynamic_update_slice(A, patchU, idx)
-            B    = lax.dynamic_update_slice(B, patchV, idx)
+            cx, cy = centre
+            mask = ((xs - cx) ** 2 + (ys - cy) ** 2) <= radius ** 2  # (H,H) bool
+            A = jnp.where(mask, 0.0, A)      # set U=0 inside circle
+            B = jnp.where(mask, 1.0, B)      # set V=1 inside circle
             return (A, B), None
 
-        (U, V), _ = lax.scan(body, (U, V), xy)
+        (U, V), _ = lax.scan(body, (U, V), centres)
         return U, V
+
 
 
     def _scatter(U, rng, n, delta=0.2, radius=3):
@@ -177,8 +213,17 @@ def make_ic(key, choice: jnp.ndarray):
         U, _ = lax.scan(body, U, xy)
         return U
 
+    def central(_):
+        if args.pde.startswith("gs") or args.pde == "ks":
+            U, V = gs_inverted_blob(k2, n=1)
+            return jnp.stack([U, V])
+        else:
+            U, V = _base()
+            U = _scatter(U, k2, n=1, delta=0.2, radius=RADIUS)   # use same helper
+            return jnp.stack([U, V])
+
     def two(_):
-        if args.pde == "gs_old":
+        if args.pde.startswith("gs") or args.pde == "ks":
             U, V = gs_inverted_blob(k2, n=2)
             return jnp.stack([U, V])
         else:
@@ -186,14 +231,14 @@ def make_ic(key, choice: jnp.ndarray):
             U = _scatter(U, k2, n=2, delta=0.2, radius=RADIUS)
             return jnp.stack([U, V])
     def three(k): 
-        if args.pde == "gs_old":
+        if args.pde.startswith("gs") or args.pde == "ks":
             U, V = gs_inverted_blob(k2, n=3)
             return jnp.stack([U, V])
         else:
             U, V = _base()
             return jnp.stack([_scatter(U, k, n=3, delta=0.2, radius=RADIUS), V])
     def four(k):  
-        if args.pde == "gs_old":
+        if args.pde.startswith("gs") or args.pde == "ks":
             U, V = gs_inverted_blob(k2, n=4)
             return jnp.stack([U, V])
         else:
@@ -223,9 +268,19 @@ else:
 T, Y = solver(ts, x0)
 # reshape and keep only U-channel for NCA training
 Y = rearrange(Y, "T B C X Y -> B T C X Y")
-Y = Y[:, :, :1]                             # keep only U for others
-Y = (Y - Y.min()) / (Y.max() - Y.min())     # normalise after slice
-Y = Y[:, ::sampling_constant]                   # downsample in time
+
+if args.pde.startswith("ks"):
+    # --- 5) Normalize both channels to [–1, +1] separately over the entire timeline ---
+    for ch in range(CELL_CHANNELS + SIGNAL_CHANNELS):
+        ch_min = Y[:, :, ch].min()
+        ch_max = Y[:, :, ch].max()
+        Y = Y.at[:, :, ch].set((Y[:, :, ch] - ch_min) / (ch_max - ch_min))
+    # --- 6) Downsample in time by TIME_SAMPLING = 32 ---
+    Y = Y[:, ::sampling_constant, :, :, :]
+else:
+    Y = Y[:, :, :1]                             # keep only U for others
+    Y = (Y - Y.min()) / (Y.max() - Y.min())     # normalise after slice
+    Y = Y[:, ::sampling_constant]                   # downsample in time
 
 # ------------------------------------------------------------------
 # 5 · Build NCA + trainer

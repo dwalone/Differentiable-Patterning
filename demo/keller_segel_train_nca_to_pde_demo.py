@@ -16,8 +16,8 @@ sys.path.append("..")
 from Common.model.spatial_operators import Ops
 from PDE.model.fixed_models.update_keller_segel import F as F_keller_segel
 from PDE.model.solver.semidiscrete_solver import PDE_solver
-from NCA.trainer.NCA_trainer_unroll import NCA_Trainer_Unroll as NCA_Trainer
-from NCA.trainer.data_augmenter_nca_from_pde_2_chemotaxis import DataAugmenter
+from NCA.trainer.NCA_trainer import NCA_Trainer as NCA_Trainer
+from NCA.trainer.data_augmenter_nca_from_pde_2 import DataAugmenter
 from NCA.model.NCA_model import NCA
 
 # --- Training hyperparameters ---

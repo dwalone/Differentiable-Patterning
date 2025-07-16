@@ -31,6 +31,8 @@ class Train_log(object):
         # image can be a numpy array or a local image file; wandb.Image handles both.
         image = np.array(image)
         assert len(image.shape) == 3, "Image must be 3D"
+        if image.ndim == 3 and image.shape[-1] == 2:       # (H,W,2)
+            image = np.repeat(image[...,:1], 3, axis=-1)   # → (H,W,3)
         wandb.log({tag: wandb.Image(image)}, step=step)
     
     def log_image_batch(self, tag, images, step=None):
