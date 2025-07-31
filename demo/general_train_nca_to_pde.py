@@ -13,6 +13,7 @@ from PDE.model.solver.semidiscrete_solver import PDE_solver
 from NCA.trainer.NCA_trainer import NCA_Trainer
 from NCA.trainer.data_augmenter_nca_from_pde_2 import DataAugmenter
 from NCA.model.NCA_model import NCA
+from NCA.model.DINCA_model import DINCA
 import jax.lax as lax
 import numpy as np
 
@@ -20,8 +21,9 @@ import numpy as np
 # 0 · Command-line interface
 # ------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument("--pde",            default="schnakenberg",
-                    choices=["schnakenberg", "fhn", "gs1", "gs2", "gs3", "ks"])
+parser.add_argument("--pde",            default="sch",
+                    choices=["sch", "fhn", "g1", "g2", "g3", "ks"])
+parser.add_argument("--batches",  type=int,   default=6)                    
 parser.add_argument("--time_sampling",  type=int,   default=32)
 parser.add_argument("--learn_rate",     type=float, default=5e-4)
 parser.add_argument("--channels",       type=int,   default=16)
@@ -29,12 +31,16 @@ parser.add_argument("--loss",           default="euclidean")
 parser.add_argument("--model_filename", default="demo/train_nca_to_pde")
 parser.add_argument("--fire_rate",      type=float, default=1.0)
 parser.add_argument("--state_reg",      type=float, default=1.0)
+parser.add_argument("--target_sparsity",   type=float, default=0.5)
+parser.add_argument("--sparse_pruning",   type=bool, default=False)
+parser.add_argument("--kernel_scale",   type=int, default=1.0)
+parser.add_argument("--model", choices=["nca", "dinca"], default="nca")
 args = parser.parse_args()
 
 # ------------------------------------------------------------------
 # 1 · Global training constants
 # ------------------------------------------------------------------
-ITERS         = 8_000
+ITERS         = 100
 SIZE          = 64
 TIME_SAMPLING = args.time_sampling
 CHANNELS      = args.channels
@@ -42,10 +48,14 @@ LEARN_RATE    = args.learn_rate
 LOSS_FUNC_STR = args.loss
 FIRE_RATE     = args.fire_rate
 STATE_REGULARISER = args.state_reg
+TARGET_SPARSITY = args.target_sparsity
+KERNEL_SCALE = args.kernel_scale
+SPARSE_PRUNING = args.sparse_pruning
 MODEL_DIR     = f"{args.model_filename}_{args.pde}"
 RADIUS = 6   # 3 → 7×7 square
 CELL_CHANNELS   = 1 #chemotaxis
 SIGNAL_CHANNELS = 1 #chemotaxis
+BATCHES = args.batches
 # ------------------------------------------------------------------
 # Static 3×3 circular averaging kernel for Gray–Scott noisy seeds
 # ------------------------------------------------------------------
@@ -57,16 +67,16 @@ AVG_OP_GS = Ops(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=3)
 # 2 · PDE-specific configuration
 # ------------------------------------------------------------------
 PDE_CONFIGS = {  # all floats (jnp)
-    "schnakenberg": dict(a=0.01,  b=2.0,   D=80.0,
+    "sch": dict(a=0.01,  b=2.0,   D=80.0,
                          steady=lambda p: (p["a"]+p["b"],
                                             p["b"]/(p["a"]+p["b"])**2)),
     "fhn":          dict(D=20.0, eps_v=0.5, a_v=1.0, a_z=-0.1,
                          steady=lambda p: (0.0, 0.0)),
-    "gs1":       dict(DA=0.1,DB=0.05,alpha=0.06230,gamma=0.06268, #labyrithn
+    "g1":       dict(DA=0.1,DB=0.05,alpha=0.06230,gamma=0.06268, #labyrithn
                          steady=lambda p: (0.0, 0.0)),
-    "gs2":       dict(DA=0.1,DB=0.05,alpha=0.046,gamma=0.065, #worms
+    "g2":       dict(DA=0.1,DB=0.05,alpha=0.046,gamma=0.065, #worms
                          steady=lambda p: (0.0, 0.0)),
-    "gs3":       dict(DA=0.1,DB=0.05,alpha=0.018,gamma=0.055,
+    "g3":       dict(DA=0.1,DB=0.05,alpha=0.018,gamma=0.055,
                          steady=lambda p: (0.0, 0.0)),
     "ks":  dict(alpha=0.01, c=3.8, D=0.8, epsilon=0.1,
                          steady=lambda p: (0.0, 0.0)),
@@ -76,19 +86,19 @@ cfg = PDE_CONFIGS[args.pde]
 
 # factory for RHS
 def make_rhs(pde_name, **pars):
-    if pde_name == "schnakenberg":
-        return F_schnakenberg(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=1, **pars)
+    if pde_name == "sch":
+        return F_schnakenberg(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=KERNEL_SCALE, **pars)
     if pde_name == "fhn":
-        return F_fhn(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=1, **pars)
-    if pde_name in ["gs1", "gs2", "gs3"]:
-        return F_gray_scott(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=1, **pars)
+        return F_fhn(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=KERNEL_SCALE, **pars)
+    if pde_name in ["g1", "g2", "g3"]:
+        return F_gray_scott(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=KERNEL_SCALE, **pars)
     if pde_name == "ks":
-        return F_ks(PADDING="CIRCULAR", dx=0.5, KERNEL_SCALE=1, **pars)
+        return F_ks(PADDING="CIRCULAR", dx=0.5, KERNEL_SCALE=KERNEL_SCALE, **pars)
     raise ValueError("unknown PDE")
 
 rhs   = make_rhs(args.pde, **{k: v for k, v in cfg.items() if k != "steady"})
 v_rhs = eqx.filter_vmap(rhs, in_axes=(None, 0, None), out_axes=0)
-if args.pde.startswith("gs"):
+if args.pde.startswith("g"):
     dt = 0.2
 else:
     dt = 5e-3
@@ -109,7 +119,7 @@ def make_ic(key, choice: jnp.ndarray):
         return U, V
 
     def noise(_):
-        if args.pde.startswith("gs"):
+        if args.pde.startswith("g"):
             """Smoothed random mask for Gray–Scott, or Gaussian noise otherwise."""
             # 1) uniform noise in both channels ...............................
             X = jr.uniform(k2, (2, SIZE, SIZE), dtype=jnp.float32)
@@ -214,7 +224,7 @@ def make_ic(key, choice: jnp.ndarray):
         return U
 
     def central(_):
-        if args.pde.startswith("gs") or args.pde == "ks":
+        if args.pde.startswith("g") or args.pde == "ks":
             U, V = gs_inverted_blob(k2, n=1)
             return jnp.stack([U, V])
         else:
@@ -223,7 +233,7 @@ def make_ic(key, choice: jnp.ndarray):
             return jnp.stack([U, V])
 
     def two(_):
-        if args.pde.startswith("gs") or args.pde == "ks":
+        if args.pde.startswith("g") or args.pde == "ks":
             U, V = gs_inverted_blob(k2, n=2)
             return jnp.stack([U, V])
         else:
@@ -231,14 +241,14 @@ def make_ic(key, choice: jnp.ndarray):
             U = _scatter(U, k2, n=2, delta=0.2, radius=RADIUS)
             return jnp.stack([U, V])
     def three(k): 
-        if args.pde.startswith("gs") or args.pde == "ks":
+        if args.pde.startswith("g") or args.pde == "ks":
             U, V = gs_inverted_blob(k2, n=3)
             return jnp.stack([U, V])
         else:
             U, V = _base()
             return jnp.stack([_scatter(U, k, n=3, delta=0.2, radius=RADIUS), V])
     def four(k):  
-        if args.pde.startswith("gs") or args.pde == "ks":
+        if args.pde.startswith("g") or args.pde == "ks":
             U, V = gs_inverted_blob(k2, n=4)
             return jnp.stack([U, V])
         else:
@@ -249,8 +259,31 @@ def make_ic(key, choice: jnp.ndarray):
                       (noise, central, two, three, four),
                       k2)
 
-mix = {0: 2, 1: 1, 2: 1, 3: 1, 4: 1}
-BATCHES = sum(mix.values())
+if BATCHES == 4:
+    num_0 = 1
+    num_1 = 0
+    num_2 = 1
+    num_3 = 1
+    num_4 = 1
+if BATCHES == 6:
+    num_0 = 2
+    num_1 = 1
+    num_2 = 1
+    num_3 = 1
+    num_4 = 1
+if BATCHES == 8:
+    num_0 = 2
+    num_1 = 1
+    num_2 = 2
+    num_3 = 2
+    num_4 = 1
+if BATCHES == 10:
+    num_0 = 3
+    num_1 = 1
+    num_2 = 2
+    num_3 = 2
+    num_4 = 2
+mix = {0: num_0, 1: num_1, 2: num_2, 3: num_3, 4: num_4}
 key, *sub = jr.split(jr.PRNGKey(0), BATCHES + 1)
 sub = jnp.array(sub)
 choices = jnp.concatenate([jnp.full(n, c, jnp.int32)
@@ -261,7 +294,7 @@ x0 = jax.vmap(make_ic)(sub, choices)         # (B,2,H,W)
 # 4 · Ground-truth trajectories
 # ------------------------------------------------------------------
 sampling_constant = 32
-if args.pde.startswith("gs"):
+if args.pde.startswith("g"):
     ts = jnp.linspace(0, 10000, sampling_constant * 10)
 else:
     ts = jnp.linspace(0, sampling_constant * 3, sampling_constant * 10)
@@ -278,18 +311,34 @@ if args.pde.startswith("ks"):
     # --- 6) Downsample in time by TIME_SAMPLING = 32 ---
     Y = Y[:, ::sampling_constant, :, :, :]
 else:
-    Y = Y[:, :, :1]                             # keep only U for others
-    Y = (Y - Y.min()) / (Y.max() - Y.min())     # normalise after slice
-    Y = Y[:, ::sampling_constant]                   # downsample in time
+    if args.model == "nca":
+        Y = Y[:, :, :1]                             # keep only U for others
+        Y = (Y - Y.min()) / (Y.max() - Y.min())
+        Y = Y[:, ::sampling_constant]                   # downsample in time
+    elif args.model == "dinca":
+        mins = Y.min(axis=(0, 1, 3, 4), keepdims=True)  # shape (1, 1, C, 1, 1)
+        ptps = Y.ptp(axis=(0, 1, 3, 4), keepdims=True)  # shape (1, 1, C, 1, 1)
+        Y = (Y - mins) / ptps
+        Y = Y[:, ::sampling_constant]                       # downsample in time
+    else:
+        raise ValueError("unknown model flag")
 
 # ------------------------------------------------------------------
 # 5 · Build NCA + trainer
 # ------------------------------------------------------------------
-nca = NCA(N_CHANNELS=CHANNELS,
-          KERNEL_STR=["ID", "LAP", "GRAD"],
-          ACTIVATION=jax.nn.relu,
-          FIRE_RATE=FIRE_RATE,
-          key=jr.PRNGKey(1))
+if args.model == "nca":
+    nca = NCA(N_CHANNELS=CHANNELS,
+              KERNEL_STR=["ID", "LAP", "GRAD"],
+              ACTIVATION=jax.nn.relu,
+              FIRE_RATE=FIRE_RATE,
+              key=jr.PRNGKey(1))
+elif args.model == "dinca":
+    nca = DINCA(N_CHANNELS=2,           # u and v only
+                #KERNEL_STR=["ID", "LAP", "GRAD"],
+                FIRE_RATE=FIRE_RATE,
+                key=jr.PRNGKey(1))
+else:
+    raise ValueError("unknown model flag")
 
 trainer = NCA_Trainer(
     nca, Y,
@@ -311,8 +360,18 @@ trainer.train(
     WARMUP=50,
     optimiser=optimiser,
     LOSS_FUNC_STR=LOSS_FUNC_STR,
-    LOOP_AUTODIFF="lax",
+    LOOP_AUTODIFF="checkpointed",
     LOG_EVERY=50,
     key=jr.PRNGKey(2),
-    STATE_REGULARISER=STATE_REGULARISER
+    STATE_REGULARISER=STATE_REGULARISER,
+    TARGET_SPARSITY=TARGET_SPARSITY,
+    SPARSE_PRUNING=SPARSE_PRUNING,
+    wandb_args={"project":"NCA",
+                "group":"group_1",
+                "name":args.model_filename,
+                "tags":["training"]}
 )
+
+if args.model == "dinca":
+    print("\\nLearned PDE:")
+    print(nca.pretty_print_pde())

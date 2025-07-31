@@ -7,15 +7,25 @@ import optax
 import equinox as eqx
 import sys
 import os
-sys.path.append('..')
+sys.path.append('../..')
+
+print("1")
 
 from einops import rearrange
+print("2")
 from Common.model.spatial_operators import Ops
+print("3")
 from PDE.model.fixed_models.update_schnakenberg import F as F_schnakenberg
+print("4")
 from PDE.model.solver.semidiscrete_solver import PDE_solver
+print("5")
 from NCA.trainer.NCA_trainer import NCA_Trainer
+print("6")
 from NCA.trainer.data_augmenter_nca_from_pde_2 import DataAugmenter
+print("7")
 from NCA.model.NCA_model import NCA
+
+print("a")
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -27,6 +37,8 @@ parser.add_argument("--model_filename",default="demo/train_nca_to_pde_schnakenbe
 parser.add_argument("--fire_rate",    type=float, default=1.0)
 parser.add_argument("--state_reg",    type=float, default=1.0)
 args = parser.parse_args()
+
+print("b")
 
 # training hyperparameters
 ITERS         = 8000        # total training iterations
@@ -43,6 +55,8 @@ STATE_REGULARISER = args.state_reg
 # build a “true” Schnakenberg trajectory
 key       = jr.PRNGKey(0)
 a_true, b_true, D_true = 0.01, 2, 80
+
+print("c")
 
 #grid
 #######################################
@@ -121,7 +135,7 @@ a_true, b_true, D_true = 0.01, 2, 80
 
 # x0 = jnp.concatenate([U0, V0], axis=1)   # shape (B, 2, SIZE, SIZE)
 # ----------------------------------------------------------------------
-
+print("d")
 #######################################################################
 U_eq = a_true + b_true
 V_eq = b_true / (U_eq**2)
@@ -197,6 +211,8 @@ def make_ic(key, choice: jnp.ndarray):
         k2                      # <- PRNGKey forwarded to the chosen branch
     )
 
+print("e")
+
 mix = {
         0: 2,
         1: 1,    # one central dot
@@ -205,6 +221,7 @@ mix = {
         4: 1,
        }
 BATCHES = sum(mix.values())
+print("f")
 
 # master key and a key per batch element
 key, *subkeys = jr.split(key, BATCHES + 1)
@@ -214,14 +231,14 @@ subkeys = jnp.array(subkeys)                 # shape (BATCHES, 2)
 choices = jnp.concatenate([
     jnp.full(n, c, dtype=jnp.int32) for c, n in mix.items()
 ])
-
+print("g")
 # vectorised call over (key, choice)
 x0 = jax.vmap(make_ic)(subkeys, choices)     # (BATCHES, 2, SIZE, SIZE)
 
 ##########################################################################
 
 # define Schnakenberg RHS and solver
-func   = F_schnakenberg(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=1,
+func   = F_schnakenberg(PADDING="CIRCULAR", dx=1.0, KERNEL_SCALE=2,
                         a=a_true, b=b_true, D=D_true)
 # parallelise RHS over the batch axis
 vfunc  = eqx.filter_vmap(func, in_axes=(None, 0, None), out_axes=0)
@@ -238,7 +255,7 @@ Y = rearrange(Y, "T B C X Y -> B T C X Y")
 Y = Y[:, :, :1]                                 # drop V
 Y = (Y - Y.min()) / (Y.max() - Y.min())         # normalize [0,1]
 Y = Y[:, ::sampling_constant]                       # downsample in time
-
+print("h")
 #--- build NCA and trainer
 nca = NCA(
     N_CHANNELS=CHANNELS,
@@ -248,7 +265,7 @@ nca = NCA(
     FIRE_RATE=FIRE_RATE,
     key=key
 )
-
+print("i")
 trainer = NCA_Trainer(
     nca,
     Y,
@@ -256,7 +273,7 @@ trainer = NCA_Trainer(
     DATA_AUGMENTER=DataAugmenter,
     GRAD_LOSS=True
 )
-
+print("j")
 #--- optimizer
 schedule  = optax.exponential_decay(LEARN_RATE, transition_steps=ITERS, decay_rate=0.99)
 optimiser = optax.chain(

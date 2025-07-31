@@ -1,4 +1,5 @@
 # sweep_runner.py ----------------------------------------------------
+## cd ~; cd Differentiable-Patterning/; source venv/bin/activate; export WANDB_MODE=online; export XLA_PYTHON_CLIENT_PREALLOCATE=false; export XLA_PYTHON_CLIENT_ALLOCATOR=platform
 import itertools, subprocess, pathlib, yaml, datetime as dt
 
 cfg = yaml.safe_load(pathlib.Path("demo/sweep_config.yaml").read_text())
@@ -18,13 +19,18 @@ for combo in itertools.product(*values):
     # assemble CLI arguments expected by your training script
     args = [
         "python", cfg["script"],
+        "--batches", str(kwargs["BATCHES"]),
         "--time_sampling", str(kwargs["TIME_SAMPLING"]),
+        "--channels", str(kwargs["CHANNELS"]),
         "--pde", kwargs["PDE"],
         "--learn_rate",    str(kwargs["LEARN_RATE"]),
         "--loss",          kwargs["LOSS"],
         "--model_filename", str(model_dir),
         "--fire_rate", str(kwargs["FIRE_RATE"]),
-        "--state_reg", str(kwargs["STATE_REGULARISER"])
+        "--state_reg", str(kwargs["STATE_REGULARISER"]),
+        "--target_sparsity",   str(kwargs["TARGET_SPARSITY"]),
+        "--sparse_pruning",   str(kwargs["SPARSE_PRUNING"]),
+        "--kernel_scale", str(kwargs["KERNEL_SCALE"]),
     ]
     print("Launching:", " ".join(args))
     subprocess.run(args, check=True)

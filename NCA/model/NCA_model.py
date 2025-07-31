@@ -250,7 +250,8 @@ class NCA(AbstractModel):
 		
 		diff_self,_ = self.partition()
 		ws,tree_def = jax.tree_util.tree_flatten(diff_self)
-		return list(map(jnp.squeeze,ws))
+		#return list(map(jnp.squeeze,ws))
+		return ws
 		#return ws,tree_def
 	def partition(self):
 		"""

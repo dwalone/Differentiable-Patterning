@@ -1,0 +1,29 @@
+#part3 state_reg
+  # - models/demo/step3_state_reg/2025-07-17T21-19_PDsch_TI32_LE5e-4_FI1.0_ST0.1_LOl1_KE1_sch.eqx
+  # - models/demo/step3_state_reg/2025-07-17T20-37_PDsch_TI32_LE5e-4_FI1.0_ST0.5_LOl1_KE1_sch.eqx
+  # - models/demo/step3_state_reg/2025-07-18T01-39_PDg1_TI32_LE5e-4_FI1.0_ST0.1_LOl1_KE1_g1.eqx
+  # - models/demo/step3_state_reg/2025-07-18T01-00_PDg1_TI32_LE5e-4_FI1.0_ST0.5_LOl1_KE1_g1.eqx
+  # - models/demo/step3_state_reg/2025-07-17T22-33_PDfhn_TI32_LE5e-4_FI1.0_ST1.0_LOl1_KE1_fhn.eqx
+  # - models/demo/step3_state_reg/2025-07-17T23-05_PDfhn_TI32_LE5e-4_FI1.0_ST0.5_LOl1_KE1_fhn.eqx
+  # - models/demo/step3_state_reg/2025-07-17T19-56_PDsch_TI32_LE5e-4_FI1.0_ST1.0_LOl1_KE1_sch.eqx
+  # - models/demo/step3_state_reg/2025-07-17T23-44_PDfhn_TI32_LE5e-4_FI1.0_ST0.1_LOl1_KE1_fhn.eqx
+  # - models/demo/step3_state_reg/2025-07-18T00-18_PDg1_TI32_LE5e-4_FI1.0_ST1.0_LOl1_KE1_g1.eqx
+
+  # models/demo/step3_state_reg/2025-07-17T21-19_PDsch_TI32_LE5e-4_FI1.0_ST0.1_LOl1_KE1_sch.eqx
+  #  Batch-mean squared error: 5.5863e-03
+  # models/demo/step3_state_reg/2025-07-17T20-37_PDsch_TI32_LE5e-4_FI1.0_ST0.5_LOl1_KE1_sch.eqx
+  #  Batch-mean squared error: 4.7317e-03
+  # models/demo/step3_state_reg/2025-07-18T01-39_PDg1_TI32_LE5e-4_FI1.0_ST0.1_LOl1_KE1_g1.eqx
+  #  Batch-mean squared error: 2.4068e-02
+  # models/demo/step3_state_reg/2025-07-18T01-00_PDg1_TI32_LE5e-4_FI1.0_ST0.5_LOl1_KE1_g1.eqx
+  #  Batch-mean squared error: 2.4490e-02
+  # models/demo/step3_state_reg/2025-07-17T22-33_PDfhn_TI32_LE5e-4_FI1.0_ST1.0_LOl1_KE1_fhn.eqx
+  #  Batch-mean squared error: 2.4449e-02
+  # models/demo/step3_state_reg/2025-07-17T23-05_PDfhn_TI32_LE5e-4_FI1.0_ST0.5_LOl1_KE1_fhn.eqx
+  #  Batch-mean squared error: 3.8549e-02
+  # models/demo/step3_state_reg/2025-07-17T19-56_PDsch_TI32_LE5e-4_FI1.0_ST1.0_LOl1_KE1_sch.eqx
+  #  Batch-mean squared error: 4.8235e-03
+  # models/demo/step3_state_reg/2025-07-17T23-44_PDfhn_TI32_LE5e-4_FI1.0_ST0.1_LOl1_KE1_fhn.eqx
+  #  Batch-mean squared error: 3.1833e-02
+  # models/demo/step3_state_reg/2025-07-18T00-18_PDg1_TI32_LE5e-4_FI1.0_ST1.0_LOl1_KE1_g1.eqx
+  #  Batch-mean squared error: 2.5062e-02

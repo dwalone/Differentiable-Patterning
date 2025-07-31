@@ -20,7 +20,7 @@ def construct_polynomials(X:Float[Array, "C"],max_power: Int[Scalar, ""])->Float
     else:
         n = X.shape[0]
         terms = []
-
+        #terms.append(jnp.array(1.0, X.dtype))    # degree-0 constant
         for power in range(1, max_power + 1):
             for combo in combinations_with_replacement(range(n), power):
                 indices = jnp.array(combo)
@@ -28,6 +28,39 @@ def construct_polynomials(X:Float[Array, "C"],max_power: Int[Scalar, ""])->Float
                 terms.append(term)
         
         return jnp.array(terms)
+
+def construct_polynomials_with_labels(X: jnp.ndarray, max_power: int, var_names=None, return_labels=True):
+    """
+    Returns all polynomial terms up to `max_power` over vector X,
+    along with symbolic labels (if `return_labels=True`).
+    If var_names is None, variables are named x0, x1, ...
+    """
+    n = X.shape[0]
+    terms = []
+    labels = []
+
+    # Default variable names
+    if var_names is None:
+        var_names = [f"x{i}" for i in range(n)]
+
+    for power in range(0, max_power + 1):
+        #-- degree-0: add the pure constant once and skip to next power ----
+        if power == 0:
+            terms.append(jnp.array(1.0, X.dtype))   # scalar "1" with same dtype
+            if return_labels:
+                labels.append("1")                  # explicit label for logger/mask
+            continue                                # go to power = 1
+        for combo in combinations_with_replacement(range(n), power):
+            indices = jnp.array(combo)
+            term = jnp.prod(X[indices])
+            terms.append(term)
+
+            if return_labels:
+                label_parts = [var_names[i] for i in combo]
+                label = "".join(label_parts)
+                labels.append(label)
+
+    return (jnp.array(terms), labels) if return_labels else jnp.array(terms)
 
 def set_layer_weights(shape,key,INIT_TYPE,INIT_SCALE):
     if INIT_TYPE=="orthogonal":

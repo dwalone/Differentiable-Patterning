@@ -71,9 +71,10 @@ class Train_log(object):
 
     def log_histogram(self, tag, values, step=None):
         v = np.asarray(values)
-        if v.size < 2 or np.allclose(v.min(), v.max()):
+        v = v[np.isfinite(v)]
+        if v.size < 2:
             # range == 0 → histogram meaningless; log scalar instead
-            wandb.log({tag: float(v.flatten()[0])}, step=step)
+            return
         else:
             wandb.log({tag: wandb.Histogram(v)}, step=step)
 

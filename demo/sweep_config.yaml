@@ -1,10 +1,39 @@
-output_root:  demo/                            # parent folder for models
+output_root:  demo/step7_batches    # parent folder for models
 script:       demo/general_train_nca_to_pde.py
 
 grid:
-  PDE: ["ks"]
-  TIME_SAMPLING: [32]
-  LEARN_RATE:    [5e-4]
+  PDE: ["sch", "fhn", "g1"]
+  BATCHES: [4, 8, 6, 10]
+  CHANNELS: [16]
+  TIME_SAMPLING: [128]
+  LEARN_RATE:    [5e-5]
   FIRE_RATE:     [1.0]
   STATE_REGULARISER: [1.0]
+  TARGET_SPARSITY: [0.0]
+  SPARSE_PRUNING: [False]
   LOSS:          ["l1"]
+  KERNEL_SCALE: [1]
+
+
+
+
+# step 1 - see which loss function is good (both euclidean and l1)
+# step 2 - compare euclidean and l1 (l1)
+# step 3 - test fire rate and state regulariser ( ideal 1 and 1 for each)
+# step 4 - time sampling (ideal 64, 128 better but loss curve sharply drop)
+# step 5 - learn rate 15000 epochs 5e-5, 5e-4, 5e-3 (first probe with just g1)
+# step 6 - try sparse pruning and state regulariser with 5e-5 for 25000 epochs
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#

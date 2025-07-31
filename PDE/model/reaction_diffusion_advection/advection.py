@@ -7,12 +7,19 @@ import equinox as eqx
 import jax.numpy as jnp
 import jax.random as jr
 import time
+print("1111")
 from Common.model.spatial_operators import Ops
+print("1112")
 from einops import rearrange,repeat
+print("1113")
 from jaxtyping import Array, Float
+print("1114")
 from Common.model.custom_functions import construct_polynomials,set_layer_weights
+print("1115")
 from jaxtyping import Array, Float
+print("1116")
 class V(eqx.Module):
+    print("1116‑still‑in‑class")
     layers: list
     N_CHANNELS: int
     DIM: int

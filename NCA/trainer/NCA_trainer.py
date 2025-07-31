@@ -441,7 +441,7 @@ class NCA_Trainer(object):
 				
 				if i>WARMUP:
 
-					ws,_ = nca.get_weights()
+					ws = nca.get_weights()
 					sparsity_distribution = partial(jaxpruner.sparsity_distributions.uniform, sparsity=SPARSITY[i])
 					pruner = jaxpruner.MagnitudePruning(
 						sparsity_distribution_fn=sparsity_distribution,

@@ -43,25 +43,31 @@ def make_central_blob_inverted(batch_size, size, radius):
     x = x.at[:, 0].set(1 - mask)    # U channel
     x = x.at[:, 1].set(mask)        # V channel
     return x
-
+print("1a")
 blob_radius = SIZE // 8
 x0 = make_central_blob_inverted(BATCHES, SIZE, blob_radius)
 
-
+print("1a")
 # choose radius (e.g. an eighth of grid size)
 blob_radius = SIZE // 8
 x0 = make_central_blob_inverted(BATCHES, SIZE, blob_radius)
 
 
-
+print("1a")
 func = F_chhabra(PADDING="CIRCULAR",dx=0.5,KERNEL_SCALE=1)
+print("c")
 v_func = eqx.filter_vmap(func,in_axes=(None,0,None),out_axes=0) # Parallelise func over BATCHES axis
 solver = PDE_solver(v_func,dt=0.2)
+print("d")
 T,Y = solver(ts=jnp.linspace(0,10000,TIME_SAMPLING*8),y0=x0)
 Y = rearrange(Y,"T B C X Y -> B T C X Y")                       # Reshape data so batch axis is first
 Y = Y[:,:,:1]                                                   # Only include main channel, not inhibitor/other chemical - see if the NCA can learn from only 1 channel
-Y = (Y-jnp.min(Y))/(jnp.max(Y)-jnp.min(Y))                      # Rescale data between 0 and 1
+eps   = 1e-8                      # or any small positive number
+print("e")
+scale = Y.max() - Y.min()
+Y = (Y - Y.min()) / jnp.where(scale < eps, 1.0, scale + eps)
 Y = Y[:,::TIME_SAMPLING]                                        # Downsample along time axis
+print("f")
 
 
 

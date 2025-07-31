@@ -48,7 +48,7 @@ class F(eqx.Module):
         self.SA = SA
         self.SI = SI
         self.DA = DA
-        self.DI = DI        
+        self.DI = DI    
         self.ops = Ops(PADDING,dx,KERNEL_SCALE)
 
     def __call__(self,
