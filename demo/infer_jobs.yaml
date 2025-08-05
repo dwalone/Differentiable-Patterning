@@ -106,6 +106,12 @@ models:                                             # explicit list
   # models/demo/step6_sparse_and_state/2025-07-26T21-23_PDg1_TI64_LE5e-5_FI1.0_ST1.0_TA1.0_SPTrue_LOl1_KE1_g1.eqx
   #  Batch-mean squared error: 2.4539e-02
 
+#step6_state_further
+
+  - models/demo/step6_state_further/2025-08-04T11-30_PDg1_BA6_CH16_TI128_LE5e-5_FI1.0_ST5_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+  - models/demo/step6_state_further/2025-08-04T00-52_PDg1_BA6_CH16_TI128_LE5e-5_FI1.0_ST1.5_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+  - models/demo/step6_state_further/2025-08-04T06-11_PDg1_BA6_CH16_TI128_LE5e-5_FI1.0_ST3_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+
 #part7_batches_old 4000 epochs 4 6 8 10 batches on g1
 
   # - models/demo/step7_batches/2025-07-28T15-03_PDg1_BA4_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g1.eqx
@@ -124,6 +130,19 @@ models:                                             # explicit list
 
 
 #part7_batches 8000 epochs 4 6 8 10 batches on sch, fhn, g1
+
+  # - models/demo/step7_batches/2025-08-01T20-58_PDfhn_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_fhn.eqx
+  # - models/demo/step7_batches/2025-08-01T12-29_PDfhn_BA4_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_fhn.eqx
+  # - models/demo/step7_batches/2025-08-02T03-22_PDg1_BA8_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+  # - models/demo/step7_batches/2025-08-01T02-05_PDsch_BA8_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_sch.eqx
+  # - models/demo/step7_batches/2025-08-01T08-17_PDsch_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_sch.eqx
+  # - models/demo/step7_batches/2025-08-02T06-54_PDg1_BA6_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+  # - models/demo/step7_batches/2025-08-01T14-40_PDfhn_BA8_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_fhn.eqx
+  # - models/demo/step7_batches/2025-08-01T18-09_PDfhn_BA6_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_fhn.eqx
+  # - models/demo/step7_batches/2025-08-02T09-46_PDg1_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+  # - models/demo/step7_batches/2025-08-01T05-31_PDsch_BA6_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_sch.eqx
+  # - models/demo/step7_batches/2025-08-02T01-13_PDg1_BA4_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+  # - models/demo/step7_batches/2025-07-31T23-58_PDsch_BA4_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_sch.eqx
 
 
 # all above done with {0: 2, 1: 1, 2: 1, 3: 1, 4: 1}

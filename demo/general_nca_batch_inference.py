@@ -173,8 +173,13 @@ vrhs = eqx.filter_vmap(rhs,in_axes=(None,0,None),out_axes=0)
 dt   = 0.2 if args.pde.startswith("g") else (5e-3 if args.pde!="ks" else 5e-3)
 solver=PDE_solver(vrhs,dt)
 sampling_constant=32
-ts = (jnp.linspace(0, 10000, sampling_constant*NUM_INTERVALS)  if args.pde.startswith("g")
-      else jnp.linspace(0, sampling_constant*3, sampling_constant*NUM_INTERVALS))
+if args.pde.startswith("g"):
+    if args.pde.startswith("g3"):
+        ts = jnp.linspace(0, 5000, sampling_constant*NUM_INTERVALS)
+    else:
+        ts = jnp.linspace(0, 10000, sampling_constant*NUM_INTERVALS)
+else: 
+    ts = jnp.linspace(0, sampling_constant*3, sampling_constant*NUM_INTERVALS)
 T,Y = solver(ts,x0)                           # (T,B,2,H,W)
 Y = rearrange(Y,"T B C H W -> B T C H W")
 

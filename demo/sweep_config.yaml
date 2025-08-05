@@ -1,9 +1,9 @@
-output_root:  demo/step7_batches    # parent folder for models
+output_root:  demo/final_step_g1g2g3    # parent folder for models
 script:       demo/general_train_nca_to_pde.py
 
 grid:
-  PDE: ["sch", "fhn", "g1"]
-  BATCHES: [4, 8, 6, 10]
+  PDE: ["g1","g2","g3"]
+  BATCHES: [10]
   CHANNELS: [16]
   TIME_SAMPLING: [128]
   LEARN_RATE:    [5e-5]

@@ -40,7 +40,7 @@ args = parser.parse_args()
 # ------------------------------------------------------------------
 # 1 · Global training constants
 # ------------------------------------------------------------------
-ITERS         = 100
+ITERS         = 20000
 SIZE          = 64
 TIME_SAMPLING = args.time_sampling
 CHANNELS      = args.channels
@@ -279,10 +279,10 @@ if BATCHES == 8:
     num_4 = 1
 if BATCHES == 10:
     num_0 = 3
-    num_1 = 1
+    num_1 = 0
     num_2 = 2
     num_3 = 2
-    num_4 = 2
+    num_4 = 3
 mix = {0: num_0, 1: num_1, 2: num_2, 3: num_3, 4: num_4}
 key, *sub = jr.split(jr.PRNGKey(0), BATCHES + 1)
 sub = jnp.array(sub)
@@ -295,7 +295,10 @@ x0 = jax.vmap(make_ic)(sub, choices)         # (B,2,H,W)
 # ------------------------------------------------------------------
 sampling_constant = 32
 if args.pde.startswith("g"):
-    ts = jnp.linspace(0, 10000, sampling_constant * 10)
+    if args.pde.startswith("g3"):
+        ts = jnp.linspace(0, 5000, sampling_constant * 10)
+    else:
+        ts = jnp.linspace(0, 10000, sampling_constant * 10)
 else:
     ts = jnp.linspace(0, sampling_constant * 3, sampling_constant * 10)
 T, Y = solver(ts, x0)
