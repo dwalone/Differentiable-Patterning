@@ -2,7 +2,7 @@ output_root:  demo/final_step_g1g2g3    # parent folder for models
 script:       demo/general_train_nca_to_pde.py
 
 grid:
-  PDE: ["g1","g2","g3"]
+  PDE: ["g2", "g3"]
   BATCHES: [10]
   CHANNELS: [16]
   TIME_SAMPLING: [128]

@@ -40,7 +40,7 @@ args = parser.parse_args()
 # ------------------------------------------------------------------
 # 1 · Global training constants
 # ------------------------------------------------------------------
-ITERS         = 20000
+ITERS         = 40000
 SIZE          = 64
 TIME_SAMPLING = args.time_sampling
 CHANNELS      = args.channels
@@ -72,11 +72,11 @@ PDE_CONFIGS = {  # all floats (jnp)
                                             p["b"]/(p["a"]+p["b"])**2)),
     "fhn":          dict(D=20.0, eps_v=0.5, a_v=1.0, a_z=-0.1,
                          steady=lambda p: (0.0, 0.0)),
-    "g1":       dict(DA=0.1,DB=0.05,alpha=0.06230,gamma=0.06268, #labyrithn
+    "g1":       dict(DA=0.1,DB=0.05,alpha=0.06230,gamma=0.06268, #labyrinth
                          steady=lambda p: (0.0, 0.0)),
     "g2":       dict(DA=0.1,DB=0.05,alpha=0.046,gamma=0.065, #worms
                          steady=lambda p: (0.0, 0.0)),
-    "g3":       dict(DA=0.1,DB=0.05,alpha=0.018,gamma=0.055,
+    "g3":       dict(DA=0.1,DB=0.05,alpha=0.018,gamma=0.055, #spots
                          steady=lambda p: (0.0, 0.0)),
     "ks":  dict(alpha=0.01, c=3.8, D=0.8, epsilon=0.1,
                          steady=lambda p: (0.0, 0.0)),

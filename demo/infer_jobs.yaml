@@ -108,9 +108,9 @@ models:                                             # explicit list
 
 #step6_state_further
 
-  - models/demo/step6_state_further/2025-08-04T11-30_PDg1_BA6_CH16_TI128_LE5e-5_FI1.0_ST5_TA0.0_SPFalse_LOl1_KE1_g1.eqx
-  - models/demo/step6_state_further/2025-08-04T00-52_PDg1_BA6_CH16_TI128_LE5e-5_FI1.0_ST1.5_TA0.0_SPFalse_LOl1_KE1_g1.eqx
-  - models/demo/step6_state_further/2025-08-04T06-11_PDg1_BA6_CH16_TI128_LE5e-5_FI1.0_ST3_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+  # - models/demo/step6_state_further/2025-08-04T11-30_PDg1_BA6_CH16_TI128_LE5e-5_FI1.0_ST5_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+  # - models/demo/step6_state_further/2025-08-04T00-52_PDg1_BA6_CH16_TI128_LE5e-5_FI1.0_ST1.5_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+  # - models/demo/step6_state_further/2025-08-04T06-11_PDg1_BA6_CH16_TI128_LE5e-5_FI1.0_ST3_TA0.0_SPFalse_LOl1_KE1_g1.eqx
 
 #part7_batches_old 4000 epochs 4 6 8 10 batches on g1
 
@@ -143,6 +143,27 @@ models:                                             # explicit list
   # - models/demo/step7_batches/2025-08-01T05-31_PDsch_BA6_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_sch.eqx
   # - models/demo/step7_batches/2025-08-02T01-13_PDg1_BA4_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g1.eqx
   # - models/demo/step7_batches/2025-07-31T23-58_PDsch_BA4_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_sch.eqx
+
+#part8 
+  # - models/demo/final_step_g1g2g3/2025-08-11T11-51_PDg1_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+  # - models/demo/final_step_g1g2g3/2025-08-12T03-42_PDg2_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g2.eqx
+  # - models/demo/final_step_g1g2g3/2025-08-12T19-39_PDg3_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g3.eqx
+  # - models/demo/final_step_schfhn/2025-08-07T00-17_PDsch_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_sch.eqx
+  # - models/demo/final_step_schfhn/2025-08-07T16-34_PDfhn_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_fhn.eqx
+
+  # models/demo/final_step_g1g2g3/2025-08-11T11-51_PDg1_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g1.eqx
+  #  Batch-mean squared error: 2.0311e-02
+  # models/demo/final_step_g1g2g3/2025-08-12T03-42_PDg2_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g2.eqx
+  #  Batch-mean squared error: 3.4597e-02
+  # models/demo/final_step_g1g2g3/2025-08-12T19-39_PDg3_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g3.eqx
+  #  Batch-mean squared error: 3.7006e-02
+  # models/demo/final_step_schfhn/2025-08-07T00-17_PDsch_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_sch.eqx
+  #  Batch-mean squared error: 4.3449e-03
+  # models/demo/final_step_schfhn/2025-08-07T16-34_PDfhn_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_fhn.eqx
+  #  Batch-mean squared error: 1.8209e-02
+
+  - models/demo/final_step_g1g2g3/2025-08-14T22-14_PDg2_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g2.eqx
+  - models/demo/final_step_g1g2g3/2025-08-15T22-12_PDg3_BA10_CH16_TI128_LE5e-5_FI1.0_ST1.0_TA0.0_SPFalse_LOl1_KE1_g3.eqx
 
 
 # all above done with {0: 2, 1: 1, 2: 1, 3: 1, 4: 1}
